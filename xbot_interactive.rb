@@ -47,9 +47,21 @@ end
 
 printf "%s Xcode Server Status %s\n", "="*10, "="*10
 bots = print_bots
-selection = read_number "Select which bot to look into"
-bot_guid = bots[selection-1]
-integrations = print_botruns(bot_guid)
-selection = read_number "Select which bot run to look into"
-print_botrun(bot_guid, integrations[selection-1])
+
+printf "%s Actions %s\n", "="*10, "="*10
+puts "1. Schedule a build run"
+puts "2. Look into details of a build run"
+case read_number "Choice of action"
+when 1
+    selection = read_number "Select which bot to look into"
+    bot_guid  = bots[selection-1]
+    schedule_botrun(bot_guid).to_h
+when 2
+    selection = read_number "Select which bot to look into"
+    bot_guid  = bots[selection-1]
+    integrations = print_botruns(bot_guid)
+    selection = read_number "Select which bot run to look into"
+    print_botrun(bot_guid, integrations[selection-1])
+end
+
 
