@@ -62,7 +62,8 @@ end
 def schedule_botrun (bot_guid)
     args = [ bot_guid ]
     resp = service_request("XCBotService", "startBotRunForBotGUID:", args)
-    printf "Scheduled botrun with guid: %s --> %s\n", bot_guid, resp.responseStatus
+    printf "Scheduled botrun for %s --> %s\n", get_bot_name(bot_guid), resp.responseStatus
+    printf "Integration queued is %s\n", resp.response.integration
     return resp
 end
 
@@ -135,6 +136,7 @@ def get_bots ()
             :subFields   => { },
             :sortFields  => [ "+longName" ],
             :entityTypes => [ "com.apple.entity.Bot" ],
+            :range       => [0, 100],
             :onlyDeleted => false
         }
     ]
@@ -143,7 +145,7 @@ def get_bots ()
     bots = Array.new
     if response.succeeded
         results = response.response.results.map { |b| b.entity }
-        results.sort_by! { |b| b.lastActivityTime.epochValue } # b.longName
+        results.sort_by! { |b| b.longName } # b.lastActivityTime.epochValue 
         results.each { |b| bots.push(get_bot(b.guid)) }
     end
     return bots
@@ -212,8 +214,8 @@ def print_botruns (bot_guid, limit = 25)
             entity = result.entity
             column = Array.new
             column.push(sprintf "%-2s", i+1)
-            column.push(sprintf " %-7s", "Int#{entity.integration}")
-            column.push(sprintf "%-20s", "#{entity.status} (#{entity.substatus})")
+            column.push(sprintf " %-5s", "##{entity.integration}")
+            column.push(sprintf "%-35s", "#{entity.status} (#{entity.subStatus})")
             column.push(sprintf "%-40s", execution_time(entity.startTime, entity.endTime))
             if VERBOSE
                 column.push(entity.guid)
