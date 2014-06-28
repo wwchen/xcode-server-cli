@@ -1,0 +1,88 @@
+{
+  "succeeded": true,
+  "executionTime": 7.975995540618896,
+  "response": {
+    "parentGUIDs": [
+      "#<DeepStruct>",
+      "#<DeepStruct>",
+      "#<DeepStruct>"
+    ],
+    "containerGUID": "781f506c-48a9-a7ba-4d89-5340ae72351a",
+    "latestRunSubStatus": null,
+    "isDeleted": false,
+    "themeInfo": null,
+    "notifyCommitterOnSuccess": false,
+    "description": null,
+    "latestFailedBotRunGUID": null,
+    "ownerGUID": "781f506c-48a9-a7ba-4d89-5340ae72351a",
+    "isFavorite": false,
+    "latestRunStatus": null,
+    "isBlogEnabled": false,
+    "type": "com.apple.entity.Bot",
+    "latestSuccessfulBotRunGUID": null,
+    "latestRunSCMCommits": null,
+    "extendedAttributes": {
+      "buildFromClean": 0,
+      "buildOnTrigger": false,
+      "deviceInfo": [
+
+      ],
+      "buildProjectPath": "common/TFSSync/TFSSync/TFSSync.xcodeproj",
+      "pollForSCMChanges": false,
+      "deviceSpecification": null,
+      "scmInfoGUIDMap": {
+        "/": "2ded7b82-44b1-b7d0-4ca8-15a6a266c7f1"
+      },
+      "integratePerformsTest": false,
+      "integratePerformsAnalyze": false,
+      "integratePerformsArchive": false,
+      "buildSchemeName": "CIBuildCheck",
+      "scmInfo": {
+        "/": {
+          "scmBranch": "main"
+        }
+      }
+    },
+    "blogGUID": null,
+    "updatedByUserGUID": "eb46b2cb-db25-4ab1-9cb5-c630f19ec39c",
+    "updateTime": {
+      "type": "com.apple.DateTime",
+      "isoValue": "2014-06-23T16:09:12.049-0700",
+      "epochValue": 1403564952.049
+    },
+    "avatarGUID": null,
+    "privateAttributes": {
+    },
+    "isHidden": false,
+    "isWatched": false,
+    "tags": [
+
+    ],
+    "longName": "Build Checker",
+    "revision": 1,
+    "ownerType": "com.apple.entity.BotGroup",
+    "isMyPage": true,
+    "createdByUserGUID": "eb46b2cb-db25-4ab1-9cb5-c630f19ec39c",
+    "createTime": {
+      "type": "com.apple.DateTime",
+      "isoValue": "2014-06-23T16:09:12.049-0700",
+      "epochValue": 1403564952.049
+    },
+    "lastActivityTime": {
+      "type": "com.apple.DateTime",
+      "isoValue": "2014-06-23T16:09:12.130-0700",
+      "epochValue": 1403564952.13
+    },
+    "shortName": "buildchecker",
+    "lastActivityUserGUID": "eb46b2cb-db25-4ab1-9cb5-c630f19ec39c",
+    "notifyCommitterOnFailure": false,
+    "guid": "c63303c4-4582-4582-ab6f-f9c0184836d7",
+    "isPermanentlyDeleted": false,
+    "tinyID": "buildchecker"
+  },
+  "type": "com.apple.ServiceResponse",
+  "referencedObjects": [
+
+  ],
+  "responseStatus": "succeeded"
+}

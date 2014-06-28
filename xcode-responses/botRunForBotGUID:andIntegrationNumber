@@ -1,0 +1,16 @@
+{
+  "type": "com.apple.BatchServiceRequest",
+  "requests": [
+    {
+      "type": "com.apple.ServiceRequest",
+      "arguments": [
+        "c631ef65-53b9-53b9-a34b-533001fbbec2",
+        "10"
+      ],
+      "sessionGUID": "5f965418-1baa-44a7-b7ba-3a1f96066086",
+      "serviceName": "XCBotService",
+      "methodName": "botRunForBotGUID:andIntegrationNumber:",
+      "expandReferencedObjects": false
+    }
+  ]
+}

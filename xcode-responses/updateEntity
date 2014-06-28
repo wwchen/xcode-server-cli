@@ -1,0 +1,66 @@
+{
+  "type": "com.apple.BatchServiceRequest",
+  "requests": [
+    {
+      "type": "com.apple.ServiceRequest",
+      "arguments": [
+        {
+          "type": "com.apple.EntityChangeSet",
+          "changes": [
+            [
+              "longName",
+              "   TravelApp Stable"
+            ],
+            [
+              "extendedAttributes",
+              {
+                "buildFromClean": 1,
+                "deviceInfo": [
+
+                ],
+                "buildOnTrigger": false,
+                "buildProjectPath": "apps/TravelApp/TravelApp.xcodeproj",
+                "pollForSCMChanges": false,
+                "deviceSpecification": "specificDevices",
+                "integratePerformsTest": true,
+                "scmInfoGUIDMap": {
+                  "/": "736cda9f-49f6-bdd1-5d65-ab84d174b0ef"
+                },
+                "integratePerformsAnalyze": true,
+                "integratePerformsArchive": true,
+                "lastBuildFromCleanTime": {
+                  "type": "com.apple.DateTime",
+                  "epochValue": 1403831772.936,
+                  "isoValue": "2014-06-27T01:16:12.936Z"
+                },
+                "buildSchemeName": "CI Build",
+                "scmInfo": {
+                  "/": {
+                    "scmBranch": "stable"
+                  }
+                }
+              }
+            ],
+            [
+              "notifyCommitterOnSuccess",
+              false
+            ],
+            [
+              "notifyCommitterOnFailure",
+              false
+            ]
+          ],
+          "changeAction": "UPDATE",
+          "entityGUID": "c631ef81-1be0-1be0-a770-1aabbbb77311",
+          "entityRevision": 56,
+          "entityType": "com.apple.entity.Bot",
+          "force": false
+        }
+      ],
+      "sessionGUID": "5f965418-1baa-44a7-b7ba-3a1f96066086",
+      "serviceName": "ContentService",
+      "methodName": "updateEntity:",
+      "expandReferencedObjects": false
+    }
+  ]
+}
