@@ -67,33 +67,58 @@ def schedule_botrun (bot_guid)
     return resp
 end
 
-def create_bot (args)
-    args = DeepStruct.new({
-        :guid => "c6345aa8-871b-871b-ce3d-809252ddc859",
-        :shortName => "buildchecker",
-        :longName => "Build Checker",
-        :extendedAttributes => {
-            :scmInfo => {
-                :/ => { :scmBranch => "main" }
+def create_bot (options)
+    # required fields
+    options = DeepStruct.new options
+    return unless options.name and
+                  options.buildProjectPath and
+                  options.buildSchemeName and
+                  options.scmBranch and
+                  options.scmGUID
+    args = {
+        #"guid" => "c6345aa8-871b-871b-ce3d-809252ddc859",
+        #"shortName" => "buildchecker",
+        "longName" => options.name,
+        "extendedAttributes" => {
+            "scmInfo" => {
+                "/" => { "scmBranch" => options.scmBranch }
             },
-            :scmInfoGUIDMap => {
-                :/ => "878372f8-4059-a7bc-56a8-84dcbc67c1a6"
+            "scmInfoGUIDMap" => {
+                "/" => options.scmGUID
             },
-            :buildProjectPath => "common/TFSSync/TFSSync/TFSSync.xcodeproj",
-            :buildSchemeName => "CIBuildCheck",
-            :pollForSCMChanges => false,
-            :buildOnTrigger => false,
-            :buildFromClean => 0,
-            :integratePerformsAnalyze => false,
-            :integratePerformsTest => false,
-            :integratePerformsArchive => false,
-            :deviceSpecification => null,
-            :deviceInfo => [ ]
+            "buildProjectPath"  => options.buildProjectPath,
+            "buildSchemeName"   => options.buildSchemeName,
+            "pollForSCMChanges" => options.pollForSCMChanges || false,
+            "buildOnTrigger"    => options.buildOnTrigger || false,
+            "buildFromClean"    => options.buildFromClean || 0,
+            "integratePerformsAnalyze" => options.integratePerformsAnalyze || false,
+            "integratePerformsTest"    => options.integratePerformsTest || false,
+            "integratePerformsArchive" => options.integratePerformsArchive || false,
+            "deviceSpecification" => options.deviceSpec || "specificDevices",
+            "deviceInfo"          => options.deviceInfo || [
+                # TODO hardcoded for now
+                # "79176943-8321-4ced-a333-5059a0719b90", # iPad 7.1
+                # "bc2fb07c-4217-4623-a43a-6943d53b7194", # iPad Retina 7.1
+                "dba14db8-77eb-4565-9c57-b36f25c6801b", # iPad Retina (64-bit) 7.1
+                # "cdb4362a-8c3e-4527-8f1b-54bca9cd44cf", # iPhone Retina (3.5-inch) 7.1
+                # "2b815333-b2de-4fd0-b2b5-9ce89b8f26ce", # iPhone Retina (4-inch 64-bit) 7.1
+                "fd887b68-6673-4b3a-89fa-eb9ac7e8cf43"  # iPhone Retina (4-inch) 7.1
+            ]
         },
-        :notifyCommitterOnSuccess => false,
-        :notifyCommitterOnFailure => false,
-        :type => "com.apple.entity.Bot"
-    })
+        "notifyCommitterOnSuccess" => options.notifyCommitterOnSuccess || false,
+        "notifyCommitterOnFailure" => options.notifyCommitterOnFailure || false,
+        "type" => "com.apple.entity.Bot"
+    }
+
+    # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
+    # and deleteWorkScheduleWithEntityGUID:
+    return service_request("XCBotService", "createBotWithProperties:", [ args ])
+end
+
+# TODO
+def change_bot_settings (bot_guid, options)
+    # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
+    # and deleteWorkScheduleWithEntityGUID:
 end
 
 ##
