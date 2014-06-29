@@ -1,0 +1,107 @@
+{
+  "succeeded": true,
+  "executionTime": 6.804049015045166,
+  "response": {
+    "parentGUIDs": [
+      "#<DeepStruct>",
+      "#<DeepStruct>",
+      "#<DeepStruct>"
+    ],
+    "containerGUID": "781f506c-48a9-a7ba-4d89-5340ae72351a",
+    "latestRunSubStatus": "build-errors",
+    "isDeleted": false,
+    "themeInfo": null,
+    "notifyCommitterOnSuccess": false,
+    "description": null,
+    "latestFailedBotRunGUID": "91af6a7d-93b6-4db7-820c-c9afb1e4b34e",
+    "ownerGUID": "781f506c-48a9-a7ba-4d89-5340ae72351a",
+    "isFavorite": false,
+    "latestRunStatus": "completed",
+    "isBlogEnabled": false,
+    "type": "com.apple.entity.Bot",
+    "latestSuccessfulBotRunGUID": "535bf60b-4f03-4f2f-9d77-3d5b07bf9e89",
+    "latestRunSCMCommits": {
+      "https://localhost/git/AXP.git": "da1ac13ce482b68add27314773bad6c94c45d4ad"
+    },
+    "extendedAttributes": {
+      "buildFromClean": 2,
+      "buildOnTrigger": false,
+      "deviceInfo": [
+        "#<DeepStruct>",
+        "#<DeepStruct>"
+      ],
+      "buildProjectPath": "common/AXPlatformTest/AXPlatformTest.xcodeproj",
+      "pollForSCMChanges": false,
+      "deviceSpecification": "specificDevices",
+      "scmInfoGUIDMap": {
+        "/": "2ded7b82-44b1-b7d0-4ca8-15a6a266c7f1"
+      },
+      "integratePerformsTest": true,
+      "integratePerformsAnalyze": true,
+      "integratePerformsArchive": true,
+      "lastBuildFromCleanTime": {
+        "type": "com.apple.DateTime",
+        "isoValue": "2014-06-27T20:59:08.599-0700",
+        "epochValue": 1403927948.598862
+      },
+      "buildSchemeName": "CI Build",
+      "scmInfo": {
+        "/": {
+          "displayName": "AXP-iceiosbuild",
+          "scmBranch": "main",
+          "scmRepoPath": "https://iceiosbuild.redmond.corp.microsoft.com/git/AXP.git",
+          "botGroupGUID": "781f506c-48a9-a7ba-4d89-5340ae72351a",
+          "scmRepoType": "git",
+          "scmCredentialType": "password",
+          "credentialGUID": "917a9ed1-06e0-44c1-acaa-80c3fefd7250",
+          "scmGUID": "2ded7b82-44b1-b7d0-4ca8-15a6a266c7f1",
+          "scmUsername": "iceadmin",
+          "sshPublicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDbH0fnKuwhIYeHfCurpbWc50RsuJe8cs5o+5a35VQeCvdGXGmzYNiZHF8ENFImAHUoP60qow26znC4HhhtmGsCyibQuILIRwhg1KYcUNLaV3XL1xHqi7mHLq+ajZ8Nc1GxLKoJtZJzipkL/3WSyyTox9CM2/fgd44bhQEy84CFOJXy2FNTW83GnqFsPkrENX4nTQYrJ+jmbn1PUWkYv9rGR7ztU2e5QpqNhscHoZeEqXr6guavWyoXzSOeN6w6bezcyZ9dVh2DTnfg84eKDLOPrDxxMR51/LMhI+Gqzvkq9uH1MtRHsKdI8VLRrVo9/rCt5uMOkEA1PIIPAH3uU6bR \n",
+          "isLocal": false
+        }
+      }
+    },
+    "blogGUID": null,
+    "updatedByUserGUID": "742d3a53-c7b0-4911-9465-90a98fd3cf7c",
+    "updateTime": {
+      "type": "com.apple.DateTime",
+      "isoValue": "2014-06-27T21:02:02.984-0700",
+      "epochValue": 1403928122.984
+    },
+    "avatarGUID": null,
+    "privateAttributes": {
+    },
+    "isHidden": false,
+    "isWatched": false,
+    "tags": [
+
+    ],
+    "longName": " AXPlatformTest CI",
+    "revision": 18,
+    "ownerType": "com.apple.entity.BotGroup",
+    "isMyPage": true,
+    "createdByUserGUID": "eb46b2cb-db25-4ab1-9cb5-c630f19ec39c",
+    "createTime": {
+      "type": "com.apple.DateTime",
+      "isoValue": "2014-06-23T16:13:19.159-0700",
+      "epochValue": 1403565199.159
+    },
+    "lastActivityTime": {
+      "type": "com.apple.DateTime",
+      "isoValue": "2014-06-27T21:02:02.998-0700",
+      "epochValue": 1403928122.998
+    },
+    "shortName": "axplatformtestci",
+    "lastActivityUserGUID": "742d3a53-c7b0-4911-9465-90a98fd3cf7c",
+    "notifyCommitterOnFailure": false,
+    "guid": "c6330400-0ac8-0ac8-16bc-aa99269be2b3",
+    "isPermanentlyDeleted": false,
+    "tinyID": "axplatformtestci"
+  },
+  "type": "com.apple.ServiceResponse",
+  "referencedObjects": [
+
+  ],
+  "responseStatus": "succeeded"
+}
+Usage: ./result_recorder.rb <bot_guid>

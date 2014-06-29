@@ -1,0 +1,15 @@
+{
+    "requests": [
+        {
+            "arguments": [
+                "1cb2d574-d0d6-4743-b5c7-00a729e73a7e"
+            ],
+            "expandReferencedObjects": false,
+            "methodName": "deleteBotWithGUID:",
+            "serviceName": "XCBotService",
+            "sessionGUID": "083e62d0-ebf3-4608-a463-79446c785b72",
+            "type": "com.apple.ServiceRequest"
+        }
+    ],
+    "type": "com.apple.BatchServiceRequest"
+}
