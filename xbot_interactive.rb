@@ -3,13 +3,13 @@
 require_relative 'xbot'
 require 'json'
 
-def read_number (prompt)
+def read_number (prompt, max = 10000)
     valid = false
     input = ""
     while not valid
         printf "%s: ", prompt
         input = $stdin.readline.strip
-        valid = /^[0-9]+$/.match(input)
+        valid = (!/^[0-9]+$/.match(input).nil?) && input.to_i > 0 && input.to_i <= max
         puts "Invalid input!" unless valid
     end
     return input.to_i
@@ -45,23 +45,35 @@ if DEBUG
     puts "====================="
 end
 
-printf "%s Xcode Server Status %s\n", "="*10, "="*10
-bots = print_bots
+while true
+    printf "%s Xcode Server Status %s\n", "="*10, "="*10
+    bots = print_bots
 
-printf "%s Actions %s\n", "="*10, "="*10
-puts "1. Schedule a build run"
-puts "2. Look into details of a build run"
-case read_number "Choice of action"
-when 1
-    selection = read_number "Select which bot to look into"
-    bot_guid  = bots[selection-1]
-    schedule_botrun(bot_guid).to_h
-when 2
-    selection = read_number "Select which bot to look into"
-    bot_guid  = bots[selection-1]
-    integrations = print_botruns(bot_guid)
-    selection = read_number "Select which bot run to look into"
-    print_botrun(bot_guid, integrations[selection-1])
+    def prompt
+        printf "%s Actions %s\n", "="*10, "="*10
+        puts "1. Schedule a build run"
+        puts "2. Look into details of a build run"
+        puts "3. Refresh"
+        puts "4. Quit"
+    end
+    prompt
+    case read_number "Choice of action", 4
+    when 1
+        selection = read_number("Select which bot to schedule", bots.length+1)
+        bot_guid  = bots[selection-1]
+        schedule_botrun(bot_guid).to_h
+        $stdin.readline
+    when 2
+        selection = read_number("Select which bot to look into", bots.length+1)
+        bot_guid  = bots[selection-1]
+        integrations = print_botruns(bot_guid)
+        selection = read_number "Select which bot run to look into", integrations.length
+        print_botrun(bot_guid, integrations[selection-1])
+        $stdin.readline
+    when 3
+    when 4
+        puts "Thanks for using. Questions or comments, email axpiosadmin@microsoft.com"
+        exit
+    end
 end
-
 

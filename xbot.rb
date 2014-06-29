@@ -34,7 +34,7 @@ def service_request (service_name, method_name, arguments)
     }
     response = DeepStruct.new get_response(URL, json)
     raise ArgumentError, "Bad response: #{response}" unless response.succeeded
-    raise ArgumentError, "Not found: #{response}" if response.response and response.response.reason == "not-found"
+    raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
     return response
 end
 
@@ -239,7 +239,7 @@ def print_botrun (bot_guid, integration_no = nil)
         title = sprintf "Latest bot run for %s\n", get_bot_name(bot_guid)
     end
 
-    if response.succeeded
+    if response.succeeded && response.response
         puts "-" * 20, title
         # puts response.to_h
         attr = response.response.extendedAttributes
@@ -305,8 +305,10 @@ class DeepStruct < OpenStruct
     def initialize(object=nil)
         @table = {}
         @hash_table = {}
+        @object = nil
         if object.is_a?(Hash)
             object.each do |k,v|
+                k = k.to_s
                 if v.is_a?(Array)
                     v.map! { |e| self.class.new(e) }
                 end
@@ -314,10 +316,13 @@ class DeepStruct < OpenStruct
                 @hash_table[k.to_sym] = v
                 new_ostruct_member(k)
             end
+        else
+            @object = object
         end
     end
 
     def to_h
+        return @object if @object
         JSON.pretty_generate @hash_table
     end
 end
