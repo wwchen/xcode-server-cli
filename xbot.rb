@@ -121,6 +121,11 @@ def change_bot_settings (bot_guid, options)
     # and deleteWorkScheduleWithEntityGUID:
 end
 
+def delete_bot (bot_guid)
+    args = [ bot_guid ]
+    return service_request("XCBotService", "deleteBotWithGUID:", args)
+end
+
 ##
 # Query responses
 ##
