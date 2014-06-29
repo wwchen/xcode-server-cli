@@ -2,6 +2,7 @@
 
 require_relative 'xbot'
 require 'json'
+require 'date'
 
 def read_number (prompt, max = 10000)
     valid = false
@@ -47,7 +48,7 @@ end
 
 short_hostname = URL.hostname.sub(/\..*/, '').upcase
 while true
-    printf "%s Xcode Server (%s) Status %s\n", "="*10, short_hostname, "="*10
+    printf "%s Xcode Server (%s) Status at %s %s\n", "="*10, short_hostname, DateTime.now.strftime("%m/%d/%y %H:%M"), "="*10
     bots = print_bots
 
     def prompt
