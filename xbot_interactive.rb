@@ -45,8 +45,9 @@ if DEBUG
     puts "====================="
 end
 
+short_hostname = URL.hostname.sub(/\..*/, '').upcase
 while true
-    printf "%s Xcode Server Status %s\n", "="*10, "="*10
+    printf "%s Xcode Server (%s) Status %s\n", "="*10, short_hostname, "="*10
     bots = print_bots
 
     def prompt
