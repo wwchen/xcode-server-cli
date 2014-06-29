@@ -273,48 +273,50 @@ def print_botrun (bot_guid, integration_no = nil)
         puts "-" * 20, title
         # puts response.to_h
         attr = response.response.extendedAttributes
-        build_output = attr.output.build if attr.output
+        if attr.output
+            build_output = attr.output.build 
 
-        errors       = build_output.ErrorSummaries
-        warnings     = build_output.WarningSummaries
-        actions      = build_output.Actions
-        archive_path = build_output.ArchivePath
-        is_running  = build_output.Running
-        analyzer_warnings = build_output.AnalyzerWarningSummaries
+            errors       = build_output.ErrorSummaries
+            warnings     = build_output.WarningSummaries
+            actions      = build_output.Actions
+            archive_path = build_output.ArchivePath
+            is_running  = build_output.Running
+            analyzer_warnings = build_output.AnalyzerWarningSummaries
 
-        if errors
-            puts "Errors:"
-            errors.each do |error|
-                puts error.to_h if DEBUG
-                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+            if errors
+                puts "Errors:"
+                errors.each do |error|
+                    puts error.to_h if DEBUG
+                    printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+                end
+                puts '-' * 10
             end
-            puts '-' * 10
-        end
 
-        if warnings
-            puts "Warnings:"
-            warnings.each do |error|
-                puts error.to_h if DEBUG
-                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+            if warnings
+                puts "Warnings:"
+                warnings.each do |error|
+                    puts error.to_h if DEBUG
+                    printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+                end
+                puts '-' * 10
             end
-            puts '-' * 10
-        end
 
-        if analyzer_warnings
-            puts "Analyzer Warnings:"
-            analyzer_warnings.each do |error|
-                puts error.to_h if DEBUG
-                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+            if analyzer_warnings
+                puts "Analyzer Warnings:"
+                analyzer_warnings.each do |error|
+                    puts error.to_h if DEBUG
+                    printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+                end
+                puts '-' * 10
             end
-            puts '-' * 10
-        end
 
-        if actions
-            puts "Actions:"
-            actions.each do |action|
-                #puts action.to_h 
-                printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
-                # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
+            if actions
+                puts "Actions:"
+                actions.each do |action|
+                    #puts action.to_h 
+                    printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
+                    # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
+                end
             end
         end
 
