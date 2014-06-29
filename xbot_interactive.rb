@@ -62,18 +62,19 @@ while true
         selection = read_number("Select which bot to schedule", bots.length+1)
         bot_guid  = bots[selection-1]
         schedule_botrun(bot_guid).to_h
-        $stdin.readline
     when 2
         selection = read_number("Select which bot to look into", bots.length+1)
         bot_guid  = bots[selection-1]
         integrations = print_botruns(bot_guid)
         selection = read_number "Select which bot run to look into", integrations.length
         print_botrun(bot_guid, integrations[selection-1])
-        $stdin.readline
     when 3
+        next
     when 4
         puts "Thanks for using. Questions or comments, email axpiosadmin@microsoft.com"
         exit
     end
+    printf "Press any key to continue.. "
+    $stdin.readline
 end
 
