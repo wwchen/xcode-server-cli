@@ -17,11 +17,11 @@ CROSSMARK = "✘"
 def get_response (hostname, body)
     url = URI "http://#{hostname}/xcs/svc"
     headers = { 'content-type' => 'application/json; charset=UTF-8', 'accept' => 'application/json' }
-    http = Net::HTTP.new uri.hostname
+    http = Net::HTTP.new hostname
     if DEBUG
         puts JSON.pretty_generate(body)
     end
-    resp = http.put(uri, body.to_json, headers)
+    resp = http.put(url, body.to_json, headers)
     return JSON.parse(resp.body)
 end
 
@@ -35,7 +35,7 @@ def service_request (service_name, method_name, arguments)
         :methodName  => method_name, #"botRunForBotGUID:andIntegrationNumber:",
         :expandReferencedObjects => false
     }
-    response = DeepStruct.new get_response(hostname, json)
+    response = DeepStruct.new get_response(HOSTNAME, json)
     raise ArgumentError, "Bad response: #{response}" unless response.succeeded
     raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
     return response
