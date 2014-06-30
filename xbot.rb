@@ -7,13 +7,15 @@ require 'date'
 
 SESSION_GUID = "083e62d0-ebf3-4608-a463-79446c785b72"
 #URL = URI 'http://iceiosbuild.redmond.corp.microsoft.com/xcs/svc'
-URL = URI 'http://localhost/xcs/svc'
+HOSTNAME = "localhost"
 DEBUG = false
 VERBOSE = true
-YES = "✔"
-NO = "✘"
+CHECKMARK = "✔"
+CROSSMARK = "✘"
 
-def get_response (uri, body)
+## Makes the PUT request to call Xcode apache/collabd/sprocket's REST API
+def get_response (hostname, body)
+    url = URI "http://#{hostname}/xcs/svc"
     headers = { 'content-type' => 'application/json; charset=UTF-8', 'accept' => 'application/json' }
     http = Net::HTTP.new uri.hostname
     if DEBUG
@@ -23,6 +25,7 @@ def get_response (uri, body)
     return JSON.parse(resp.body)
 end
 
+## Prepare and send out a ServiceRequest 
 def service_request (service_name, method_name, arguments)
     json = {
         :type        => "com.apple.ServiceRequest",
@@ -32,7 +35,7 @@ def service_request (service_name, method_name, arguments)
         :methodName  => method_name, #"botRunForBotGUID:andIntegrationNumber:",
         :expandReferencedObjects => false
     }
-    response = DeepStruct.new get_response(URL, json)
+    response = DeepStruct.new get_response(hostname, json)
     raise ArgumentError, "Bad response: #{response}" unless response.succeeded
     raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
     return response
@@ -49,7 +52,7 @@ def cancel_botrun (bot_guid)
     return resp
 end
 
-# NOTE: limitation on API
+# NOTE: limitation on API. Doesn't actually work
 def clear_queued_botruns (bot_guid)
     botruns  = get_botruns(bot_guid)
     botruns.each do |botrun|
@@ -143,15 +146,10 @@ end
 
 def get_bot (bot_guid)
     args = [ bot_guid ]
-    resp = service_request("XCBotService", "botForGUID:", args)
-    return resp
-
-    # prettify
-    if resp.succeeded
-        # TODO
-    end
+    return service_request("XCBotService", "botForGUID:", args)
 end
 
+## When you're not sure what entity a GUID represents, use this to find out
 def get_entity (guid)
     args = [ guid ]
     return service_request("ContentService", "entityForGUID:", args)
@@ -333,6 +331,7 @@ end
 ##
 
 # http://andreapavoni.com/blog/2013/4/create-recursive-openstruct-from-a-ruby-hash/#.U6z4xY1g5vk
+# And my additional bug fixes
 class DeepStruct < OpenStruct
     def initialize(object=nil)
         @table = {}
@@ -359,6 +358,7 @@ class DeepStruct < OpenStruct
     end
 end
 
+# Strip out special spaces (Alt+space)
 class String
     def sstrip
         self.tr(" ", " ").strip
@@ -370,49 +370,3 @@ class Float
         DateTime.strptime(self.to_s, "%s").strftime(format)
     end
 end
-
-
-##
-# main
-##
-
-newspreci = "c6330605-5f48-5f48-68f1-7a015814973e"
-axpci = "c631e5f9-9f1c-9f1c-288f-1c917f4612c5"
-yumci = "c631e891-11d2-11d2-204c-f489aa41cf47"
-travelstable = "c631ef81-1be0-1be0-a770-1aabbbb77311"
-
-#puts clear_queued_botruns yumci
-#cancel_bot "0812e43f-b9d3-4348-b49d-dab2f781ea2b"
-#print_bots
-#print_botruns travelstable
-#print_botrun axpci
-
-#puts JSON.pretty_generate put(uri, test)
-
-
-# retrieve commits
-'{
-  "type": "com.apple.BatchServiceRequest",
-  "requests": [
-    {
-      "type": "com.apple.ServiceRequest",
-      "arguments": [
-        "$result->{responses}[0]->{response}->{guid}"
-      ],
-      "sessionGUID": "30ea7c14-49fb-497e-9999-4a9d2bef1f60",
-      "serviceName": "XCBotService",
-      "methodName": "scmCommitsForBotRunGUID:",
-      "expandReferencedObjects": false
-    }
-  ]
-}'
-
-# status
-#"methodName": "latestBotRunForBotGUID:",
-
-# last-status
-#"methodName": "latestTerminalBotRunForBotGUID:",
-
-# context
-#"methodName": "metaTagsForEntityID:withRoute:",
-#
