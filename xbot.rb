@@ -3,7 +3,6 @@
 require 'json'
 require 'net/http'
 require 'ostruct'
-require 'date'
 
 SESSION_GUID = "083e62d0-ebf3-4608-a463-79446c785b72"
 #URL = URI 'http://iceiosbuild.redmond.corp.microsoft.com/xcs/svc'
@@ -366,7 +365,7 @@ class String
 end
 
 class Float
-    def to_date (format = "%m/%d/%y %H:%M")
-        DateTime.strptime(self.to_s, "%s").strftime(format)
+    def to_date (format = "%D %l:%M %p")
+        Time.at(self.to_s).strftime(format)
     end
 end
