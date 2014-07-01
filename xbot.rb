@@ -214,10 +214,10 @@ end
 def execution_time (dt_object_start, dt_object_end)
     if dt_object_start
         start_time = dt_object_start.epochValue.to_f
-        timestamp = start_time.to_date("%m/%d/%y %H:%M")
+        timestamp = start_time.to_date
         if dt_object_end
             end_time = dt_object_end.epochValue.to_f
-            timestamp = sprintf "%s - %s (%i mins)", timestamp, end_time.to_date("%H:%M"), ((end_time - start_time) / 60).to_i
+            timestamp = sprintf "%s - %s (%i mins)", timestamp, end_time.to_date("%l:%M"), ((end_time - start_time) / 60).to_i
         end
         return timestamp
     end
@@ -365,7 +365,7 @@ class String
 end
 
 class Float
-    def to_date (format = "%D %l:%M %p")
-        Time.at(self.to_s).strftime(format)
+    def to_date (format = "%a %b %d, %l:%M %p")
+        Time.at(self).strftime(format)
     end
 end
