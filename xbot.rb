@@ -117,7 +117,6 @@ def create_bot (options)
     return service_request("XCBotService", "createBotWithProperties:", [ args ])
 end
 
-# TODO
 def change_bot_settings (bot_guid, options)
     # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
     # and deleteWorkScheduleWithEntityGUID:
