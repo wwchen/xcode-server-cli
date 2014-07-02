@@ -79,8 +79,8 @@ if branch == CI_BRANCH
     botrun_status = botrun.status
     botrun_substatus = botrun.subStatus
     time          = botrun.lastActivityTime.epochValue
-    commits       = botrun.scmCommitGUIDs
-    commit_guid   = commits.first.to_h unless commits.nil? or commits.empty?
+    commits       = botrun.scmCommitGUIDs or []
+    commit_guid   = commits.first.to_h unless commits.empty?
     commit_id     = nil
     commit_msg    = nil
 
