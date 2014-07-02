@@ -121,6 +121,55 @@ end
 def change_bot_settings (bot_guid, options)
     # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
     # and deleteWorkScheduleWithEntityGUID:
+    options = DeepStruct.new options
+
+    info = get_bot(bot_guid).response
+    args = {
+        "type" => "com.apple.EntityChangeSet",
+        "changes" => [
+            [
+                "longName", options.name || info.longName
+            ], 
+            [
+                "extendedAttributes",
+                {
+                    "buildFromClean" => options.buildFromClean || info.extendedAttributes.buildFromClean,
+                    "buildOnTrigger" => options.buildOnTrigger || info.extendedAttributes.buildOnTrigger,
+                    "deviceInfo"     => options.deviceInfo || info.extendedAttributes.deviceInfo.map { |a| a.to_h },
+                    "deviceSpecification" => options.deviceType || info.extendedAttributes.deviceSpecification,
+                    "buildProjectPath" => options.buildPath || info.extendedAttributes.buildProjectPath,
+                    "pollForSCMChanges" => options.pollForChanges || info.extendedAttributes.pollForSCMChanges,
+                    "scmInfoGUIDMap" => {
+                        "/" => info.extendedAttributes.scmInfoGUIDMap./
+                    },
+                    "integratePerformsTest" => options.integratePerformsTest || info.extendedAttributes.integratePerformsTest,
+                    "integratePerformsAnalyze" => options.integratePerformsAnalyze || info.extendedAttributes.integratePerformsAnalyze,
+                    "integratePerformsArchive" => options.integratePerformsArchive || info.extendedAttributes.integratePerformsArchive,
+                    "lastBuildFromCleanTime" => info.extendedAttributes.lastBuildFromCleanTime.to_h,
+                    "lastBuildFromCleanTime" =>  {
+                        "type" => "com.apple.DateTime",
+                        "isoValue" => "2014-07-01T06:05:15.396-0700",
+                        "epochValue" => 1404219915.395994
+                    },
+                    "buildSchemeName" => options.name || info.extendedAttributes.buildSchemeName,
+                    "scmInfo" => {
+                        "/" => {
+                            "scmBranch" => options.branch || info.extendedAttributes.scmInfo./.scmBranch
+                        }
+                    }
+                }
+            ], 
+            ["notifyCommitterOnSuccess", options.successNotify || info.notifyCommitterOnSuccess ], 
+            ["notifyCommitterOnFailure", options.failureNotify || info.notifyCommitterOnFailure ]
+        ],
+        "changeAction" => "UPDATE",
+        "entityGUID" => bot_guid,
+        "entityRevision" => info.revision,
+        "entityType" => "com.apple.entity.Bot",
+        "force" => false
+    }
+    puts JSON.pretty_generate args
+    return service_request("ContentService", "updateEntity:", [ args ])
 end
 
 def delete_bot (bot_guid)
