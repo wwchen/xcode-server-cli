@@ -11,8 +11,8 @@ if ARGV.length < 3
 end
 
 bot_guid = ARGV[0]
-to = ARGV[1]
-cc = ARGV[2]
+to = ARGV[1].gsub(/"/, '').gsub(/,/, ';')
+cc = ARGV[2].gsub(/"/, '').gsub(/,/, ';')
 
 Mail.defaults do
     delivery_method :sendmail
@@ -37,6 +37,8 @@ if response
         commits      = response.scmCommitGUIDs
 
         unless error_cnt == 0 and warning_cnt == 0 and issue_cnt == 0
+            puts "Preparing email"
+
             inline_summary = Array.new
             inline_summary.push "#{error_cnt} errors"     if error_cnt > 0
             inline_summary.push "#{warning_cnt} warnings" if warning_cnt > 0
@@ -82,16 +84,18 @@ if response
 
             unless commits.nil? or commits.empty? 
                 body.push "<h1>Commits</h1>"
+                commit_table = Array.new
+                commit_table.push "<table>"
                 commits.each do |commit|
-                    commit = get_entity(commit.guid).response
-                    body.push "#{commit.commitID}: #{commit.message}"
+                    commit_rsp = get_entity(commit.to_h).response
+                    commit_table.push "<tr><td>#{commit_rsp.commitID[-7..-1]}</td><td>#{commit_rsp.message}</td></tr>"
                 end
+                commit_table.push "</table>"
+                body.push commit_table.join
             end
             
 
 
-            body.push ""
-            body.push "<i>You are receiving this email because you are part of iOS Build Notifications (iceiosbuild@microsoft.com). Questions, please email axpiosadmin@microsoft.com</i>"
             Mail.deliver do
                 from FROM
                   to to
