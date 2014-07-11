@@ -5,8 +5,7 @@ require 'net/http'
 require 'ostruct'
 
 SESSION_GUID = "083e62d0-ebf3-4608-a463-79446c785b72"
-#URL = URI 'http://iceiosbuild.redmond.corp.microsoft.com/xcs/svc'
-HOSTNAME = "localhost"
+HOSTNAME = "iceiosbuild.redmond.corp.microsoft.com"
 DEBUG = false
 VERBOSE = true
 CHECKMARK = "✔"
