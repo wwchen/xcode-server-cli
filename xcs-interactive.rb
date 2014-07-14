@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative 'xbot'
+require_relative 'xcs-base'
 require 'json'
 
 def read_number (prompt, max = 10000)

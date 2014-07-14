@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
-require_relative 'xbot'
+
+require_relative 'xcs-base'
 require "sqlite3"
 require "CFPropertyList"
 #require "git"

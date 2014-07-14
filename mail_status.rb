@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative 'xbot'
+require_relative 'xcs-base'
 require 'mail'
 
 FROM = "admin@iceiosbuild.redmond.corp.microsoft.com"

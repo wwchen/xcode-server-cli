@@ -1,8 +1,17 @@
 #!/usr/bin/env ruby
 
-require_relative 'xbot'
+require_relative 'xcs-base'
 
-output = send(*ARGV)
+#output = send(*ARGV)
+
+action = ARGV[0]
+bot_name = Regexp.new ARGV[1]
+
+case action
+when "bots"
+  puts get_bots[0].response.guid
+end
+exit
 
 if output.is_a? DeepStruct
     puts output.to_h
