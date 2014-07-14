@@ -11,6 +11,48 @@ VERBOSE = true
 CHECKMARK = "✔"
 CROSSMARK = "✘"
 
+
+##
+# Base classes
+##
+class Bot
+  @entity = nil
+  @botruns = nil
+
+  def initialize(arg)
+    if arg.is_a? DeepStruct
+      @entity = arg
+    else
+      @entity = get_bot bot_guid
+    end
+  end
+
+  def name
+    return @entity.longName.sstrip
+  end
+
+  def guid
+    return @entity.guid
+  end
+
+  def latest_run
+  end
+
+  def latest_run_status
+    return sprintf "%s (%s)", @entity.latestRunStatus, @entity.latestRunSubStatus
+  end
+end
+
+class BotRun
+  @entity = nil
+  def new(botrun_guid)
+  end
+end
+
+
+#####################################################################
+
+
 ## Makes the PUT request to call Xcode apache/collabd/sprocket's REST API
 def get_response (hostname, body)
     url = URI "http://#{hostname}/xcs/svc"
