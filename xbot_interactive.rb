@@ -19,7 +19,6 @@ def print_bots()
     bots = get_bots()
     bots.each_with_index do |bot, i|
         next if bot.isDeleted or not bot.succeeded
-        bot = bot.response
         column = Array.new
         column.push(i+1)
         column.push(bot.longName.sstrip)
@@ -32,7 +31,7 @@ def print_bots()
             printf("%2s. %-25s %-30s %s\n", *column)
         end
     end
-    return bots.map { |b| b.response.guid }
+    return bots.map { |b| b.guid }
 end
 
 $config = {

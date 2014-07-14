@@ -73,8 +73,8 @@ if branch == CI_BRANCH
     bot_response    = get_bot bot_guid
     botrun_response = get_botrun bot_guid
 
-    bot_name      = bot_response.response.longName.sstrip
-    botrun        = botrun_response.response
+    bot_name      = bot_response.longName.sstrip
+    botrun        = botrun_response
     botrun_guid   = botrun.guid
     botrun_status = botrun.status
     botrun_substatus = botrun.subStatus
@@ -87,8 +87,7 @@ if branch == CI_BRANCH
     printf "%s's latest run %s with %s. There are %s commits in this integration.\n", bot_name, botrun_status, botrun_substatus, commits.length
     if commit_guid
         puts "Looking into commit with guid #{commit_guid}"
-        commit_response = get_entity commit_guid
-        commit     = commit_response.response
+        commit     = get_entity commit_guid
         commit_id  = commit.commitID
         commit_msg = commit.message
 

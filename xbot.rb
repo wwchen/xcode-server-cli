@@ -36,7 +36,7 @@ def service_request (service_name, method_name, arguments)
     response = DeepStruct.new get_response(HOSTNAME, json)
     raise ArgumentError, "Bad response: #{response}" unless response.succeeded
     raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
-    return response
+    return response.response
 end
 
 
@@ -46,7 +46,7 @@ end
 def cancel_botrun (bot_guid)
     args = [ bot_guid ]
     resp = service_request("XCBotService", "cancelBotRunWithGUID:", args)
-    printf "Cancel botrun with guid: %s --> %s\n", botrun_guid, resp.responseStatus
+    printf "Cancel botrun with guid: %s\n", botrun_guid
     return resp
 end
 
@@ -63,8 +63,8 @@ end
 def schedule_botrun (bot_guid)
     args = [ bot_guid ]
     resp = service_request("XCBotService", "startBotRunForBotGUID:", args)
-    printf "Scheduled botrun for %s --> %s\n", get_bot_name(bot_guid), resp.responseStatus
-    printf "Integration queued is %s\n", resp.response.integration
+    printf "Scheduled botrun for %s\n", get_bot_name(bot_guid)
+    printf "Integration queued is %s\n", resp.integration
     return resp
 end
 
@@ -121,7 +121,7 @@ def change_bot_settings (bot_guid, options)
     # and deleteWorkScheduleWithEntityGUID:
     options = DeepStruct.new options
 
-    info = get_bot(bot_guid).response
+    info = get_bot(bot_guid)
     args = {
         "type" => "com.apple.EntityChangeSet",
         "changes" => [
@@ -217,11 +217,9 @@ def get_bots ()
     response = service_request("SearchService", "query:", args)
 
     bots = Array.new
-    if response.succeeded
-        results = response.response.results.map { |b| b.entity }
-        results.sort_by! { |b| b.longName } # b.lastActivityTime.epochValue 
-        results.each { |b| bots.push(get_bot(b.guid)) }
-    end
+    results = response.results.map { |b| b.entity }
+    results.sort_by! { |b| b.longName } # b.lastActivityTime.epochValue 
+    results.each { |b| bots.push(get_bot(b.guid)) }
     return bots
 end
 
@@ -255,7 +253,7 @@ end
 # Helper get methods
 ##
 def get_bot_name (bot_guid)
-    return get_entity(bot_guid).response.longName.sstrip
+    return get_entity(bot_guid).longName.sstrip
 end
 
 def execution_time (dt_object_start, dt_object_end)
@@ -279,26 +277,24 @@ def print_botruns (bot_guid, limit = 25)
     puts response.to_h if DEBUG
 
     integrations = Array.new
-    if response.succeeded
-        puts "-" * 20
-        printf "Bot runs for %s\n", get_bot_name(bot_guid)
-        results = response.response.results.sort_by { |b| b.entity.integration }
-        results.each_with_index do |result, i|
-            puts result.to_h if DEBUG
-            entity = result.entity
-            column = Array.new
-            column.push(sprintf "%-2s", i+1)
-            column.push(sprintf " %-5s", "##{entity.integration}")
-            column.push(sprintf "%-35s", "#{entity.status} (#{entity.subStatus})")
-            column.push(sprintf "%-40s", execution_time(entity.startTime, entity.endTime))
-            if VERBOSE
-                column.push(entity.guid)
-            end
-            integrations.push(entity.integration)
-            puts column.join
+    puts "-" * 20
+    printf "Bot runs for %s\n", get_bot_name(bot_guid)
+    results = response.results.sort_by { |b| b.entity.integration }
+    results.each_with_index do |result, i|
+        puts result.to_h if DEBUG
+        entity = result.entity
+        column = Array.new
+        column.push(sprintf "%-2s", i+1)
+        column.push(sprintf " %-5s", "##{entity.integration}")
+        column.push(sprintf "%-35s", "#{entity.status} (#{entity.subStatus})")
+        column.push(sprintf "%-40s", execution_time(entity.startTime, entity.endTime))
+        if VERBOSE
+            column.push(entity.guid)
         end
-        puts "-" * 20
+        integrations.push(entity.integration)
+        puts column.join
     end
+    puts "-" * 20
     return integrations
 end
 
@@ -313,63 +309,61 @@ def print_botrun (bot_guid, integration_no = nil)
         title = sprintf "Latest bot run for %s\n", get_bot_name(bot_guid)
     end
 
-    if response.succeeded && response.response
-        puts "-" * 20, title
-        # puts response.to_h
-        attr = response.response.extendedAttributes
-        if attr.output
-            build_output = attr.output.build 
+    puts "-" * 20, title
+    # puts response.to_h
+    attr = response.extendedAttributes
+    if attr.output
+        build_output = attr.output.build 
 
-            errors       = build_output.ErrorSummaries
-            warnings     = build_output.WarningSummaries
-            actions      = build_output.Actions
-            archive_path = build_output.ArchivePath
-            is_running  = build_output.Running
-            analyzer_warnings = build_output.AnalyzerWarningSummaries
+        errors       = build_output.ErrorSummaries
+        warnings     = build_output.WarningSummaries
+        actions      = build_output.Actions
+        archive_path = build_output.ArchivePath
+        is_running  = build_output.Running
+        analyzer_warnings = build_output.AnalyzerWarningSummaries
 
-            if errors
-                puts "Errors:"
-                errors.each do |error|
-                    puts error.to_h if DEBUG
-                    printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-                end
-                puts '-' * 10
+        if errors
+            puts "Errors:"
+            errors.each do |error|
+                puts error.to_h if DEBUG
+                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
             end
-
-            if warnings
-                puts "Warnings:"
-                warnings.each do |error|
-                    puts error.to_h if DEBUG
-                    printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-                end
-                puts '-' * 10
-            end
-
-            if analyzer_warnings
-                puts "Analyzer Warnings:"
-                analyzer_warnings.each do |error|
-                    puts error.to_h if DEBUG
-                    printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-                end
-                puts '-' * 10
-            end
-
-            if actions
-                puts "Actions:"
-                actions.each do |action|
-                    #puts action.to_h 
-                    printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
-                    # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
-                end
-            end
+            puts '-' * 10
         end
 
-        #puts errors, actions, archive_path, is_running, analyzer_warnings
+        if warnings
+            puts "Warnings:"
+            warnings.each do |error|
+                puts error.to_h if DEBUG
+                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+            end
+            puts '-' * 10
+        end
 
-        title = sprintf "%s (%s)\n", attr.longName, attr.guid
-        printf "%s\n%s\n", title, "=" * title.length
-        puts "-" * 20
+        if analyzer_warnings
+            puts "Analyzer Warnings:"
+            analyzer_warnings.each do |error|
+                puts error.to_h if DEBUG
+                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+            end
+            puts '-' * 10
+        end
+
+        if actions
+            puts "Actions:"
+            actions.each do |action|
+                #puts action.to_h 
+                printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
+                # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
+            end
+        end
     end
+
+    #puts errors, actions, archive_path, is_running, analyzer_warnings
+
+    title = sprintf "%s (%s)\n", attr.longName, attr.guid
+    printf "%s\n%s\n", title, "=" * title.length
+    puts "-" * 20
 end
 
 ## 
@@ -415,4 +409,17 @@ class Float
     def to_date (format = "%a %b %d, %l:%M %p")
         Time.at(self).strftime(format)
     end
+end
+
+
+
+
+
+
+##
+# Sanitized methods
+##
+
+def bot_names
+  bots = get_bots
 end
