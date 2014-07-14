@@ -18,7 +18,7 @@ end
 def print_bots()
     bots = get_bots()
     bots.each_with_index do |bot, i|
-        next if bot.isDeleted or not bot.succeeded
+        next if bot.isDeleted
         column = Array.new
         column.push(i+1)
         column.push(bot.longName.sstrip)
