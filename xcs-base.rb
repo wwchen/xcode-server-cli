@@ -3,9 +3,12 @@
 require 'json'
 require 'net/http'
 require 'ostruct'
+require 'yaml'
 
-SESSION_GUID = "083e62d0-ebf3-4608-a463-79446c785b72"
-HOSTNAME = "iceiosbuild.redmond.corp.microsoft.com"
+CONFIG = YAML.load_file(File.join(File.dirname(File.expand_path(__FILE__)),"config.yml")) unless defined? CONFIG
+
+SESSION_GUID = CONFIG["SESSION_GUID"]
+HOSTNAME = CONFIG["HOSTNAME"]
 DEBUG = false
 VERBOSE = true
 CHECKMARK = "✔"
