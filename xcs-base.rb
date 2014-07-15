@@ -20,16 +20,20 @@ CROSSMARK = "✘"
 ##
 class Bot
   @entity = nil
+  @guid = nil
   @botruns = nil
 
-  def initialize(arg)
-    if arg.is_a? DeepStruct
-      @entity = arg
-    else
-      @entity = get_bot bot_guid
-    end
+  def initialize(bot_guid)
+    @guid = bot_guid
+    @entity = self.get
   end
 
+  ## getters
+  def botruns(limit = 25)
+    get_botruns @guid, limit
+  end
+
+  ## accessors
   def name
     return @entity.longName.sstrip
   end
@@ -38,18 +42,54 @@ class Bot
     return @entity.guid
   end
 
+  ## actions
+  def cancel
+    service_request("XCBotService", "cancelBotRunWithGUID:", [@guid])
+  end
+
+  def integrate
+    service_request("XCBotService", "startBotRunForBotGUID:", [@guid])
+  end
+
+  def delete
+    service_request("XCBotService", "deleteBotWithGUID:", [@guid])
+  end
+
+  def get
+    service_request("XCBotService", "botForGUID:", [@guid])
+  end
+  private :get
+
+  def botrun (integration_no = nil)
+    if integration_no
+        args = [ @guid, integration_no ]
+        service_request("XCBotService", "botRunForBotGUID:andIntegrationNumber:", args)
+    else
+        service_request("XCBotService", "latestTerminalBotRunForBotGUID:", [@guid])
+    end
+  end
+
+  ## prints
   def latest_run
   end
 
   def latest_run_status
     return sprintf "%s (%s)", @entity.latestRunStatus, @entity.latestRunSubStatus
   end
+
+  def to_s
+  end
+
 end
 
 class BotRun
   @entity = nil
-  def new(botrun_guid)
+  @guid = nil
+
+  def initialize(botrun_guid)
+    get_botruns 
   end
+
 end
 
 # http://andreapavoni.com/blog/2013/4/create-recursive-openstruct-from-a-ruby-hash/#.U6z4xY1g5vk
@@ -124,34 +164,8 @@ def service_request (service_name, method_name, arguments)
     return response.response
 end
 
+#####################################################################
 
-##
-# Actions
-##
-def cancel_botrun (bot_guid)
-    args = [ bot_guid ]
-    resp = service_request("XCBotService", "cancelBotRunWithGUID:", args)
-    printf "Cancel botrun with guid: %s\n", botrun_guid
-    return resp
-end
-
-# NOTE: limitation on API. Doesn't actually work
-def clear_queued_botruns (bot_guid)
-    botruns  = get_botruns(bot_guid)
-    botruns.each do |botrun|
-        printf "%s) %s - %s\n", botrun.integration, botrun.status, botrun.guid
-    end
-    
-    return
-end
-
-def schedule_botrun (bot_guid)
-    args = [ bot_guid ]
-    resp = service_request("XCBotService", "startBotRunForBotGUID:", args)
-    printf "Scheduled botrun for %s\n", get_bot_name(bot_guid)
-    printf "Integration queued is %s\n", resp.integration
-    return resp
-end
 
 def create_bot (options)
     # required fields
@@ -255,30 +269,9 @@ def change_bot_settings (bot_guid, options)
     return service_request("ContentService", "updateEntity:", [ args ])
 end
 
-def delete_bot (bot_guid)
-    args = [ bot_guid ]
-    return service_request("XCBotService", "deleteBotWithGUID:", args)
-end
-
 ##
 # Query responses
 ##
-def get_botrun (bot_guid, integration_no = nil)
-    if integration_no
-        args = [ bot_guid, integration_no ]
-        resp = service_request("XCBotService", "botRunForBotGUID:andIntegrationNumber:", args)
-        return resp
-    else
-        args = [ bot_guid ]
-        resp = service_request("XCBotService", "latestTerminalBotRunForBotGUID:", args)
-        return resp
-    end
-end
-
-def get_bot (bot_guid)
-    args = [ bot_guid ]
-    return service_request("XCBotService", "botForGUID:", args)
-end
 
 ## When you're not sure what entity a GUID represents, use this to find out
 def get_entity (guid)
@@ -304,7 +297,7 @@ def get_bots ()
     bots = Array.new
     results = response.results.map { |b| b.entity }
     results.sort_by! { |b| b.longName } # b.lastActivityTime.epochValue 
-    results.each { |b| bots.push(get_bot(b.guid)) }
+    results.each { |b| bots.push Bot.new(b.guid) }
     return bots
 end
 
@@ -330,17 +323,19 @@ def get_botruns (bot_guid, limit = 25)
         :range => [0, limit],
         :onlyDeleted => false
     ]
-    return service_request("SearchService", "query:", args)
+    response = service_request("SearchService", "query:", args)
+
+    botruns = Array.new
+    results = response.results.map { |b| b.entity }
+    results.sort_by! { |b| b.integratoin }
+    results.each { |b| botruns.push BotRun.new(b.guid) }
+    return botruns
 end
 
 
 ##
 # Helper get methods
 ##
-def get_bot_name (bot_guid)
-    return get_entity(bot_guid).longName.sstrip
-end
-
 def execution_time (dt_object_start, dt_object_end)
     if dt_object_start
         start_time = dt_object_start.epochValue.to_f
