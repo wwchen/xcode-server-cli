@@ -52,6 +52,46 @@ class BotRun
   end
 end
 
+# http://andreapavoni.com/blog/2013/4/create-recursive-openstruct-from-a-ruby-hash/#.U6z4xY1g5vk
+# And my additional bug fixes
+class DeepStruct < OpenStruct
+    def initialize(object=nil)
+        @table = {}
+        @hash_table = {}
+        @object = nil
+        if object.is_a?(Hash)
+            object.each do |k,v|
+                k = k.to_s
+                if v.is_a?(Array)
+                    v.map! { |e| self.class.new(e) }
+                end
+                @table[k.to_sym] = (v.is_a?(Hash) ? self.class.new(v) : v)
+                @hash_table[k.to_sym] = v
+                new_ostruct_member(k)
+            end
+        else
+            @object = object
+        end
+    end
+
+    def to_h
+        return @object if @object
+        JSON.pretty_generate @hash_table
+    end
+end
+
+# Strip out special spaces (Alt+space)
+class String
+    def sstrip
+        self.tr(" ", " ").strip
+    end
+end
+
+class Float
+    def to_date (format = "%a %b %d, %l:%M %p")
+        Time.at(self).strftime(format)
+    end
+end
 
 #####################################################################
 
@@ -409,62 +449,4 @@ def print_botrun (bot_guid, integration_no = nil)
     title = sprintf "%s (%s)\n", attr.longName, attr.guid
     printf "%s\n%s\n", title, "=" * title.length
     puts "-" * 20
-end
-
-## 
-# Class overload
-##
-
-# http://andreapavoni.com/blog/2013/4/create-recursive-openstruct-from-a-ruby-hash/#.U6z4xY1g5vk
-# And my additional bug fixes
-class DeepStruct < OpenStruct
-    def initialize(object=nil)
-        @table = {}
-        @hash_table = {}
-        @object = nil
-        if object.is_a?(Hash)
-            object.each do |k,v|
-                k = k.to_s
-                if v.is_a?(Array)
-                    v.map! { |e| self.class.new(e) }
-                end
-                @table[k.to_sym] = (v.is_a?(Hash) ? self.class.new(v) : v)
-                @hash_table[k.to_sym] = v
-                new_ostruct_member(k)
-            end
-        else
-            @object = object
-        end
-    end
-
-    def to_h
-        return @object if @object
-        JSON.pretty_generate @hash_table
-    end
-end
-
-# Strip out special spaces (Alt+space)
-class String
-    def sstrip
-        self.tr(" ", " ").strip
-    end
-end
-
-class Float
-    def to_date (format = "%a %b %d, %l:%M %p")
-        Time.at(self).strftime(format)
-    end
-end
-
-
-
-
-
-
-##
-# Sanitized methods
-##
-
-def bot_names
-  bots = get_bots
 end
