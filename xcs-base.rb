@@ -11,8 +11,9 @@ SESSION_GUID = CONFIG["SESSION_GUID"]
 HOSTNAME = CONFIG["HOSTNAME"]
 DEBUG = false
 VERBOSE = true
-CHECKMARK = "✔"
-CROSSMARK = "✘"
+#CHECKMARK = "✔"
+#CROSSMARK = "✘"
+CACHE_EXPIRY = 5
 
 
 ##
@@ -22,24 +23,37 @@ class Bot
   @entity = nil
   @guid = nil
   @botruns = nil
+  @last_update = nil
 
-  def initialize(bot_guid)
-    @guid = bot_guid
-    @entity = self.get
+  def initialize(arg)
+    if arg.is_a? String && arg.strip.match /^[0-9a-z-]*$/
+      @guid = arg.strip
+      get
+    elsif arg.is_a? Hash
+      # TODO the return type doens't match
+      @entity = create(arg)
+    else
+      raise ArgumentError, "Cannot create or find a Bot with argument: " + arg.to_s
+    end
   end
 
-  ## getters
-  def botruns(limit = 25)
-    get_botruns @guid, limit
+  ## catch-all accessor methods
+  # converts snake string to camel case
+  # http://apidock.com/rails/ActiveSupport/Inflector/camelize
+  def method_missing(method)
+    property = method.id2name
+    property = property.sub(/^(?=\b|[A-Z_])|\w/) { $&.downcase }
+    property = property.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }
+    get[property] || get.extendedAttributes[property] || raise(NoMethodError, property + " does not exist")
   end
 
-  ## accessors
+  ## shorthand accessors
   def name
-    return @entity.longName.sstrip
+    return get.longName.sstrip
   end
 
-  def guid
-    return @entity.guid
+  def scm_guid
+    return get.extendedAttributes.scmInfoGUIDMap./
   end
 
   ## actions
@@ -55,18 +69,103 @@ class Bot
     service_request("XCBotService", "deleteBotWithGUID:", [@guid])
   end
 
+  def create(options)
+    # required fields
+    options = DeepStruct.new options
+    raise ArgumentError unless options.name and
+                  options.buildProjectPath and
+                  options.buildSchemeName and
+                  options.scmBranch and
+                  options.scmGUID
+    args = {
+        #"guid" => "c6345aa8-871b-871b-ce3d-809252ddc859",
+        #"shortName" => "buildchecker",
+        "longName" => options.name,
+        "extendedAttributes" => {
+            "scmInfo" => {
+                "/" => { "scmBranch" => options.scmBranch }
+            },
+            "scmInfoGUIDMap" => {
+                "/" => options.scmGUID  # 2ded7b82-44b1-b7d0-4ca8-15a6a266c7f1
+            },
+            "buildProjectPath"  => options.buildProjectPath,
+            "buildSchemeName"   => options.buildSchemeName,
+            "pollForSCMChanges" => options.pollForSCMChanges || false,
+            "buildOnTrigger"    => options.buildOnTrigger || false,
+            "buildFromClean"    => options.buildFromClean || 0, # 1: always, 2: once a day
+            "integratePerformsAnalyze" => options.integratePerformsAnalyze || true,
+            "integratePerformsTest"    => options.integratePerformsTest || true,
+            "integratePerformsArchive" => options.integratePerformsArchive || true,
+            "deviceSpecification" => options.deviceSpec || "specificDevices",
+            "deviceInfo"          => options.deviceInfo || [
+                # TODO hardcoded for now
+                # "79176943-8321-4ced-a333-5059a0719b90", # iPad 7.1
+                # "bc2fb07c-4217-4623-a43a-6943d53b7194", # iPad Retina 7.1
+                "dba14db8-77eb-4565-9c57-b36f25c6801b", # iPad Retina (64-bit) 7.1
+                # "cdb4362a-8c3e-4527-8f1b-54bca9cd44cf", # iPhone Retina (3.5-inch) 7.1
+                # "2b815333-b2de-4fd0-b2b5-9ce89b8f26ce", # iPhone Retina (4-inch 64-bit) 7.1
+                "fd887b68-6673-4b3a-89fa-eb9ac7e8cf43"  # iPhone Retina (4-inch) 7.1
+            ]
+        },
+        "notifyCommitterOnSuccess" => options.notifyCommitterOnSuccess || false,
+        "notifyCommitterOnFailure" => options.notifyCommitterOnFailure || false,
+        "type" => "com.apple.entity.Bot"
+    }
+
+    # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
+    # and deleteWorkScheduleWithEntityGUID:
+    return service_request("XCBotService", "createBotWithProperties:", [ args ])
+  end
+  private :create
+
   def get
-    service_request("XCBotService", "botForGUID:", [@guid])
+    now = Time.now.to_i
+    if !@last_update || (now - @last_update) > CACHE_EXPIRY
+      @entity = service_request("XCBotService", "botForGUID:", [@guid])
+    end
+    @last_update = Time.now.to_i
+    return @entity
   end
   private :get
 
   def botrun (integration_no = nil)
     if integration_no
         args = [ @guid, integration_no ]
-        service_request("XCBotService", "botRunForBotGUID:andIntegrationNumber:", args)
+        return service_request("XCBotService", "botRunForBotGUID:andIntegrationNumber:", args)
     else
-        service_request("XCBotService", "latestTerminalBotRunForBotGUID:", [@guid])
+        return service_request("XCBotService", "latestTerminalBotRunForBotGUID:", [@guid])
     end
+  end
+
+  # TODO (code review it)
+  def botruns (limit = 25)
+    # query for the raw data
+    args = [ 
+        :query => {
+            :and => [ # :or supported
+                {
+                    :match => "com.apple.entity.BotRun",
+                    :field => "type",
+                    :exact => true,
+                },
+                {
+                    :match => bot_guid,
+                    :field => "ownerGUID",
+                    :exact => true
+                }
+            ],
+        },
+        :fields => [ "tinyID", "longName", "shortName", "type", "createTime", "startTime", "endTime", "status", "subStatus", "integration" ],
+        :range => [0, limit],
+        :onlyDeleted => false
+    ]
+    response = service_request("SearchService", "query:", args)
+
+    botruns = Array.new
+    results = response.results.map { |b| b.entity }
+    results.sort_by! { |b| b.integratoin }
+    results.each { |b| botruns.push BotRun.new(b.guid) }
+    return botruns
   end
 
   ## prints
@@ -168,51 +267,6 @@ end
 
 
 def create_bot (options)
-    # required fields
-    options = DeepStruct.new options
-    return unless options.name and
-                  options.buildProjectPath and
-                  options.buildSchemeName and
-                  options.scmBranch and
-                  options.scmGUID
-    args = {
-        #"guid" => "c6345aa8-871b-871b-ce3d-809252ddc859",
-        #"shortName" => "buildchecker",
-        "longName" => options.name,
-        "extendedAttributes" => {
-            "scmInfo" => {
-                "/" => { "scmBranch" => options.scmBranch }
-            },
-            "scmInfoGUIDMap" => {
-                "/" => options.scmGUID
-            },
-            "buildProjectPath"  => options.buildProjectPath,
-            "buildSchemeName"   => options.buildSchemeName,
-            "pollForSCMChanges" => options.pollForSCMChanges || false,
-            "buildOnTrigger"    => options.buildOnTrigger || false,
-            "buildFromClean"    => options.buildFromClean || 0,
-            "integratePerformsAnalyze" => options.integratePerformsAnalyze || false,
-            "integratePerformsTest"    => options.integratePerformsTest || false,
-            "integratePerformsArchive" => options.integratePerformsArchive || false,
-            "deviceSpecification" => options.deviceSpec || "specificDevices",
-            "deviceInfo"          => options.deviceInfo || [
-                # TODO hardcoded for now
-                # "79176943-8321-4ced-a333-5059a0719b90", # iPad 7.1
-                # "bc2fb07c-4217-4623-a43a-6943d53b7194", # iPad Retina 7.1
-                "dba14db8-77eb-4565-9c57-b36f25c6801b", # iPad Retina (64-bit) 7.1
-                # "cdb4362a-8c3e-4527-8f1b-54bca9cd44cf", # iPhone Retina (3.5-inch) 7.1
-                # "2b815333-b2de-4fd0-b2b5-9ce89b8f26ce", # iPhone Retina (4-inch 64-bit) 7.1
-                "fd887b68-6673-4b3a-89fa-eb9ac7e8cf43"  # iPhone Retina (4-inch) 7.1
-            ]
-        },
-        "notifyCommitterOnSuccess" => options.notifyCommitterOnSuccess || false,
-        "notifyCommitterOnFailure" => options.notifyCommitterOnFailure || false,
-        "type" => "com.apple.entity.Bot"
-    }
-
-    # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
-    # and deleteWorkScheduleWithEntityGUID:
-    return service_request("XCBotService", "createBotWithProperties:", [ args ])
 end
 
 def change_bot_settings (bot_guid, options)
@@ -301,36 +355,6 @@ def get_bots ()
     return bots
 end
 
-
-def get_botruns (bot_guid, limit = 25)
-    # query for the raw data
-    args = [ 
-        :query => {
-            :and => [ # :or supported
-                {
-                    :match => "com.apple.entity.BotRun",
-                    :field => "type",
-                    :exact => true,
-                },
-                {
-                    :match => bot_guid,
-                    :field => "ownerGUID",
-                    :exact => true
-                }
-            ],
-        },
-        :fields => [ "tinyID", "longName", "shortName", "type", "createTime", "startTime", "endTime", "status", "subStatus", "integration" ],
-        :range => [0, limit],
-        :onlyDeleted => false
-    ]
-    response = service_request("SearchService", "query:", args)
-
-    botruns = Array.new
-    results = response.results.map { |b| b.entity }
-    results.sort_by! { |b| b.integratoin }
-    results.each { |b| botruns.push BotRun.new(b.guid) }
-    return botruns
-end
 
 
 ##
