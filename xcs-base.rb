@@ -30,8 +30,10 @@ class Bot
       @guid = arg.strip
       get
     elsif arg.is_a? Hash
-      # TODO the return type doens't match
-      @entity = create(arg)
+      # TODO try the actual method here
+      response = create(arg)
+      @guid = response.guid
+      get
     else
       raise ArgumentError, "Cannot create or find a Bot with argument: " + arg.to_s
     end
@@ -58,15 +60,15 @@ class Bot
 
   ## actions
   def cancel
-    service_request("XCBotService", "cancelBotRunWithGUID:", [@guid])
+    ServiceRequest.xcbot_service("cancelBotRunWithGUID:", [@guid])
   end
 
   def integrate
-    service_request("XCBotService", "startBotRunForBotGUID:", [@guid])
+    ServiceRequest.xcbot_service("startBotRunForBotGUID:", [@guid])
   end
 
   def delete
-    service_request("XCBotService", "deleteBotWithGUID:", [@guid])
+    ServiceRequest.xcbot_service("deleteBotWithGUID:", [@guid])
   end
 
   def create(options)
@@ -114,14 +116,69 @@ class Bot
 
     # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
     # and deleteWorkScheduleWithEntityGUID:
-    return service_request("XCBotService", "createBotWithProperties:", [ args ])
+    return ServiceRequest.xcbot_service("createBotWithProperties:", [ args ])
   end
   private :create
+
+  # TODO try this method
+  def change_settings (options)
+      # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
+      # and deleteWorkScheduleWithEntityGUID:
+      options = DeepStruct.new options
+
+      get
+      args = {
+          "type" => "com.apple.EntityChangeSet",
+          "changes" => [
+              [
+                  "longName", options.name || @entity.longName
+              ], 
+              [
+                  "extendedAttributes",
+                  {
+                      "buildFromClean" => options.buildFromClean || @entity.extendedAttributes.buildFromClean,
+                      "buildOnTrigger" => options.buildOnTrigger || @entity.extendedAttributes.buildOnTrigger,
+                      "device@entity"     => options.device@entity || @entity.extendedAttributes.device@entity.map { |a| a.to_h },
+                      "deviceSpecification" => options.deviceType || @entity.extendedAttributes.deviceSpecification,
+                      "buildProjectPath" => options.buildPath || @entity.extendedAttributes.buildProjectPath,
+                      "pollForSCMChanges" => options.pollForChanges || @entity.extendedAttributes.pollForSCMChanges,
+                      "scm@entityGUIDMap" => {
+                          "/" => @entity.extendedAttributes.scm@entityGUIDMap./
+                      },
+                      "integratePerformsTest" => options.integratePerformsTest || @entity.extendedAttributes.integratePerformsTest,
+                      "integratePerformsAnalyze" => options.integratePerformsAnalyze || @entity.extendedAttributes.integratePerformsAnalyze,
+                      "integratePerformsArchive" => options.integratePerformsArchive || @entity.extendedAttributes.integratePerformsArchive,
+                      "lastBuildFromCleanTime" => @entity.extendedAttributes.lastBuildFromCleanTime.to_h,
+                      "lastBuildFromCleanTime" =>  {
+                          "type" => "com.apple.DateTime",
+                          "isoValue" => "2014-07-01T06:05:15.396-0700",
+                          "epochValue" => 1404219915.395994
+                      },
+                      "buildSchemeName" => options.name || @entity.extendedAttributes.buildSchemeName,
+                      "scm@entity" => {
+                          "/" => {
+                              "scmBranch" => options.branch || @entity.extendedAttributes.scm@entity./.scmBranch
+                          }
+                      }
+                  }
+              ], 
+              ["notifyCommitterOnSuccess", options.successNotify || @entity.notifyCommitterOnSuccess ], 
+              ["notifyCommitterOnFailure", options.failureNotify || @entity.notifyCommitterOnFailure ]
+          ],
+          "changeAction" => "UPDATE",
+          "entityGUID" => bot_guid,
+          "entityRevision" => @entity.revision,
+          "entityType" => "com.apple.entity.Bot",
+          "force" => false
+      }
+      puts JSON.pretty_generate args
+      return ServiceRequest.content_service("updateEntity:", [ args ])
+  end
 
   def get
     now = Time.now.to_i
     if !@last_update || (now - @last_update) > CACHE_EXPIRY
-      @entity = service_request("XCBotService", "botForGUID:", [@guid])
+      @entity = ServiceRequest.xcbot_service("botForGUID:", [@guid])
     end
     @last_update = Time.now.to_i
     return @entity
@@ -131,9 +188,9 @@ class Bot
   def botrun (integration_no = nil)
     if integration_no
         args = [ @guid, integration_no ]
-        return service_request("XCBotService", "botRunForBotGUID:andIntegrationNumber:", args)
+        return ServiceRequest.xcbot_service("botRunForBotGUID:andIntegrationNumber:", args)
     else
-        return service_request("XCBotService", "latestTerminalBotRunForBotGUID:", [@guid])
+        return ServiceRequest.xcbot_service("latestTerminalBotRunForBotGUID:", [@guid])
     end
   end
 
@@ -159,7 +216,7 @@ class Bot
         :range => [0, limit],
         :onlyDeleted => false
     ]
-    response = service_request("SearchService", "query:", args)
+    response = ServiceRequest.search_service("query:", args)
 
     botruns = Array.new
     results = response.results.map { |b| b.entity }
@@ -190,6 +247,54 @@ class BotRun
   end
 
 end
+
+class ServiceRequest
+  private_class_method :get_response, :request
+
+  ## Makes the PUT request to call Xcode apache/collabd/sprocket's REST API
+  def self.get_response (hostname, body)
+      url = URI "http://#{hostname}/xcs/svc"
+      headers = { 'content-type' => 'application/json; charset=UTF-8', 'accept' => 'application/json' }
+      http = Net::HTTP.new hostname
+      if DEBUG
+          puts JSON.pretty_generate(body)
+      end
+      resp = http.put(url, body.to_json, headers)
+      return JSON.parse(resp.body)
+  end
+
+  ## Prepare and send out a ServiceRequest 
+  def self.request (service_name, method_name, arguments)
+      json = {
+          :type        => "com.apple.ServiceRequest",
+          :arguments   => arguments, #[ "c631ef65-53b9-53b9-a34b-533001fbbec2", "10" ],
+          :sessionGUID => SESSION_GUID,
+          :serviceName => service_name, #"XCBotService",
+          :methodName  => method_name, #"botRunForBotGUID:andIntegrationNumber:",
+          :expandReferencedObjects => false
+      }
+      response = DeepStruct.new self.get_response(HOSTNAME, json)
+      raise ArgumentError, "Bad response: #{response}" unless response.succeeded
+      raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
+      return response.response
+  end
+
+  def self.search_service(method, arg)
+    return self.request("SearchService", method, args)
+  end
+
+  def self.content_service(method, arg)
+    return self.request("ContentService", method, args)
+  end
+
+  def self.xcbot_service(method, arg)
+    return self.request("XCBotService", "cancelBotRunWithGUID:", [@guid])
+  end
+end
+
+
+  #####################################################################
+
 
 # http://andreapavoni.com/blog/2013/4/create-recursive-openstruct-from-a-ruby-hash/#.U6z4xY1g5vk
 # And my additional bug fixes
@@ -235,93 +340,6 @@ end
 #####################################################################
 
 
-## Makes the PUT request to call Xcode apache/collabd/sprocket's REST API
-def get_response (hostname, body)
-    url = URI "http://#{hostname}/xcs/svc"
-    headers = { 'content-type' => 'application/json; charset=UTF-8', 'accept' => 'application/json' }
-    http = Net::HTTP.new hostname
-    if DEBUG
-        puts JSON.pretty_generate(body)
-    end
-    resp = http.put(url, body.to_json, headers)
-    return JSON.parse(resp.body)
-end
-
-## Prepare and send out a ServiceRequest 
-def service_request (service_name, method_name, arguments)
-    json = {
-        :type        => "com.apple.ServiceRequest",
-        :arguments   => arguments, #[ "c631ef65-53b9-53b9-a34b-533001fbbec2", "10" ],
-        :sessionGUID => SESSION_GUID,
-        :serviceName => service_name, #"XCBotService",
-        :methodName  => method_name, #"botRunForBotGUID:andIntegrationNumber:",
-        :expandReferencedObjects => false
-    }
-    response = DeepStruct.new get_response(HOSTNAME, json)
-    raise ArgumentError, "Bad response: #{response}" unless response.succeeded
-    raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
-    return response.response
-end
-
-#####################################################################
-
-
-def create_bot (options)
-end
-
-def change_bot_settings (bot_guid, options)
-    # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
-    # and deleteWorkScheduleWithEntityGUID:
-    options = DeepStruct.new options
-
-    info = get_bot(bot_guid)
-    args = {
-        "type" => "com.apple.EntityChangeSet",
-        "changes" => [
-            [
-                "longName", options.name || info.longName
-            ], 
-            [
-                "extendedAttributes",
-                {
-                    "buildFromClean" => options.buildFromClean || info.extendedAttributes.buildFromClean,
-                    "buildOnTrigger" => options.buildOnTrigger || info.extendedAttributes.buildOnTrigger,
-                    "deviceInfo"     => options.deviceInfo || info.extendedAttributes.deviceInfo.map { |a| a.to_h },
-                    "deviceSpecification" => options.deviceType || info.extendedAttributes.deviceSpecification,
-                    "buildProjectPath" => options.buildPath || info.extendedAttributes.buildProjectPath,
-                    "pollForSCMChanges" => options.pollForChanges || info.extendedAttributes.pollForSCMChanges,
-                    "scmInfoGUIDMap" => {
-                        "/" => info.extendedAttributes.scmInfoGUIDMap./
-                    },
-                    "integratePerformsTest" => options.integratePerformsTest || info.extendedAttributes.integratePerformsTest,
-                    "integratePerformsAnalyze" => options.integratePerformsAnalyze || info.extendedAttributes.integratePerformsAnalyze,
-                    "integratePerformsArchive" => options.integratePerformsArchive || info.extendedAttributes.integratePerformsArchive,
-                    "lastBuildFromCleanTime" => info.extendedAttributes.lastBuildFromCleanTime.to_h,
-                    "lastBuildFromCleanTime" =>  {
-                        "type" => "com.apple.DateTime",
-                        "isoValue" => "2014-07-01T06:05:15.396-0700",
-                        "epochValue" => 1404219915.395994
-                    },
-                    "buildSchemeName" => options.name || info.extendedAttributes.buildSchemeName,
-                    "scmInfo" => {
-                        "/" => {
-                            "scmBranch" => options.branch || info.extendedAttributes.scmInfo./.scmBranch
-                        }
-                    }
-                }
-            ], 
-            ["notifyCommitterOnSuccess", options.successNotify || info.notifyCommitterOnSuccess ], 
-            ["notifyCommitterOnFailure", options.failureNotify || info.notifyCommitterOnFailure ]
-        ],
-        "changeAction" => "UPDATE",
-        "entityGUID" => bot_guid,
-        "entityRevision" => info.revision,
-        "entityType" => "com.apple.entity.Bot",
-        "force" => false
-    }
-    puts JSON.pretty_generate args
-    return service_request("ContentService", "updateEntity:", [ args ])
-end
 
 ##
 # Query responses
@@ -330,7 +348,7 @@ end
 ## When you're not sure what entity a GUID represents, use this to find out
 def get_entity (guid)
     args = [ guid ]
-    return service_request("ContentService", "entityForGUID:", args)
+    return ServiceRequest.content_service("entityForGUID:", args)
 end
 
 def get_bots ()
@@ -346,7 +364,7 @@ def get_bots ()
             :onlyDeleted => false
         }
     ]
-    response = service_request("SearchService", "query:", args)
+    response = ServiceRequest.search_service("query:", args)
 
     bots = Array.new
     results = response.results.map { |b| b.entity }
