@@ -26,10 +26,10 @@ class Bot
   @last_update = nil
 
   def initialize(arg)
-    if arg.is_a? String && arg.strip.match /^[0-9a-z-]*$/
+    if (arg.is_a? String && arg.strip.match(/^[0-9a-z-]*$/))
       @guid = arg.strip
       get
-    elsif arg.is_a? Hash
+    elsif (arg.is_a? Hash)
       # TODO try the actual method here
       response = create(arg)
       @guid = response.guid
@@ -58,7 +58,7 @@ class Bot
     return get.extendedAttributes.scmInfoGUIDMap./
   end
 
-  ## actions
+  ## action verbs: create, update, delete, get, integrate, cancel
   def cancel
     ServiceRequest.xcbot_service("cancelBotRunWithGUID:", [@guid])
   end
@@ -70,6 +70,16 @@ class Bot
   def delete
     ServiceRequest.xcbot_service("deleteBotWithGUID:", [@guid])
   end
+
+  def get
+    now = Time.now.to_i
+    if !@last_update || (now - @last_update) > CACHE_EXPIRY
+      @entity = ServiceRequest.xcbot_service("botForGUID:", [@guid])
+    end
+    @last_update = Time.now.to_i
+    return @entity
+  end
+  private :get
 
   def create(options)
     # required fields
@@ -121,7 +131,7 @@ class Bot
   private :create
 
   # TODO try this method
-  def change_settings (options)
+  def update (options)
       # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
       # and deleteWorkScheduleWithEntityGUID:
       options = DeepStruct.new options
@@ -138,12 +148,12 @@ class Bot
                   {
                       "buildFromClean" => options.buildFromClean || @entity.extendedAttributes.buildFromClean,
                       "buildOnTrigger" => options.buildOnTrigger || @entity.extendedAttributes.buildOnTrigger,
-                      "device@entity"     => options.device@entity || @entity.extendedAttributes.device@entity.map { |a| a.to_h },
+                      "deviceInfo"     => options.deviceInfo || @entity.extendedAttributes.deviceInfo.map { |a| a.to_h },
                       "deviceSpecification" => options.deviceType || @entity.extendedAttributes.deviceSpecification,
                       "buildProjectPath" => options.buildPath || @entity.extendedAttributes.buildProjectPath,
                       "pollForSCMChanges" => options.pollForChanges || @entity.extendedAttributes.pollForSCMChanges,
-                      "scm@entityGUIDMap" => {
-                          "/" => @entity.extendedAttributes.scm@entityGUIDMap./
+                      "scmInfoGUIDMap" => {
+                          "/" => @entity.extendedAttributes.scmInfoGUIDMap./
                       },
                       "integratePerformsTest" => options.integratePerformsTest || @entity.extendedAttributes.integratePerformsTest,
                       "integratePerformsAnalyze" => options.integratePerformsAnalyze || @entity.extendedAttributes.integratePerformsAnalyze,
@@ -155,9 +165,9 @@ class Bot
                           "epochValue" => 1404219915.395994
                       },
                       "buildSchemeName" => options.name || @entity.extendedAttributes.buildSchemeName,
-                      "scm@entity" => {
+                      "scmInfo" => {
                           "/" => {
-                              "scmBranch" => options.branch || @entity.extendedAttributes.scm@entity./.scmBranch
+                              "scmBranch" => options.branch || @entity.extendedAttributes.scmInfo./.scmBranch
                           }
                       }
                   }
@@ -174,16 +184,6 @@ class Bot
       puts JSON.pretty_generate args
       return ServiceRequest.content_service("updateEntity:", [ args ])
   end
-
-  def get
-    now = Time.now.to_i
-    if !@last_update || (now - @last_update) > CACHE_EXPIRY
-      @entity = ServiceRequest.xcbot_service("botForGUID:", [@guid])
-    end
-    @last_update = Time.now.to_i
-    return @entity
-  end
-  private :get
 
   def botrun (integration_no = nil)
     if integration_no
@@ -249,7 +249,6 @@ class BotRun
 end
 
 class ServiceRequest
-  private_class_method :get_response, :request
 
   ## Makes the PUT request to call Xcode apache/collabd/sprocket's REST API
   def self.get_response (hostname, body)
@@ -262,6 +261,7 @@ class ServiceRequest
       resp = http.put(url, body.to_json, headers)
       return JSON.parse(resp.body)
   end
+  private_class_method :get_response
 
   ## Prepare and send out a ServiceRequest 
   def self.request (service_name, method_name, arguments)
@@ -278,6 +278,7 @@ class ServiceRequest
       raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
       return response.response
   end
+  private_class_method :request
 
   def self.search_service(method, arg)
     return self.request("SearchService", method, args)
@@ -347,8 +348,7 @@ end
 
 ## When you're not sure what entity a GUID represents, use this to find out
 def get_entity (guid)
-    args = [ guid ]
-    return ServiceRequest.content_service("entityForGUID:", args)
+    return ServiceRequest.content_service("entityForGUID:", [ guid ])
 end
 
 def get_bots ()
