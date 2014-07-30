@@ -26,7 +26,7 @@ class Bot
   @last_update = nil
 
   def initialize(arg)
-    if (arg.is_a? String && arg.strip.match(/^[0-9a-z-]*$/))
+    if (arg.is_a?(String) && arg.strip.match(/^[0-9a-z-]*$/))
       @guid = arg.strip
       get
     elsif (arg.is_a? Hash)
@@ -35,7 +35,7 @@ class Bot
       @guid = response.guid
       get
     else
-      raise ArgumentError, "Cannot create or find a Bot with argument: " + arg.to_s
+      raise ArgumentError, sprintf("Cannot create or find a Bot with argument: %s", arg)
     end
   end
 
@@ -273,7 +273,7 @@ class ServiceRequest
           :methodName  => method_name, #"botRunForBotGUID:andIntegrationNumber:",
           :expandReferencedObjects => false
       }
-      response = DeepStruct.new self.get_response(HOSTNAME, json)
+      response = DeepStruct.new get_response(HOSTNAME, json)
       raise ArgumentError, "Bad response: #{response}" unless response.succeeded
       raise ArgumentError, "Not found: #{response}" if response.response && response.response.reason == "not-found"
       return response.response
@@ -281,15 +281,15 @@ class ServiceRequest
   private_class_method :request
 
   def self.search_service(method, arg)
-    return self.request("SearchService", method, args)
+    return request("SearchService", method, arg)
   end
 
   def self.content_service(method, arg)
-    return self.request("ContentService", method, args)
+    return request("ContentService", method, arg)
   end
 
   def self.xcbot_service(method, arg)
-    return self.request("XCBotService", "cancelBotRunWithGUID:", [@guid])
+    return request("XCBotService", method, arg)
   end
 end
 
@@ -348,29 +348,29 @@ end
 
 ## When you're not sure what entity a GUID represents, use this to find out
 def get_entity (guid)
-    return ServiceRequest.content_service("entityForGUID:", [ guid ])
+  return ServiceRequest.content_service("entityForGUID:", [ guid ])
 end
 
 def get_bots ()
-    # query for the raw data
-    args = [
-        { 
-            :query       => nil,
-            :fields      => [ "tinyID", "longName", "shortName", "type", "createTime", "updateTime", "isDeleted", "tags", "description" ],
-            :subFields   => { },
-            :sortFields  => [ "+longName" ],
-            :entityTypes => [ "com.apple.entity.Bot" ],
-            :range       => [0, 100],
-            :onlyDeleted => false
-        }
-    ]
-    response = ServiceRequest.search_service("query:", args)
+  # query for the raw data
+  args = [
+    { 
+    :query       => nil,
+    :fields      => [ "tinyID", "longName", "shortName", "type", "createTime", "updateTime", "isDeleted", "tags", "description" ],
+    :subFields   => { },
+    :sortFields  => [ "+longName" ],
+    :entityTypes => [ "com.apple.entity.Bot" ],
+    :range       => [0, 100],
+    :onlyDeleted => false
+  }
+  ]
+  response = ServiceRequest.search_service("query:", args)
 
-    bots = Array.new
-    results = response.results.map { |b| b.entity }
-    results.sort_by! { |b| b.longName } # b.lastActivityTime.epochValue 
-    results.each { |b| bots.push Bot.new(b.guid) }
-    return bots
+  bots = Array.new
+  results = response.results.map { |b| b.entity }
+  results.sort_by! { |b| b.longName } # b.lastActivityTime.epochValue 
+  results.each { |b| bots.push Bot.new(b.guid) }
+  return bots
 end
 
 
@@ -379,15 +379,15 @@ end
 # Helper get methods
 ##
 def execution_time (dt_object_start, dt_object_end)
-    if dt_object_start
-        start_time = dt_object_start.epochValue.to_f
-        timestamp = start_time.to_date
-        if dt_object_end
-            end_time = dt_object_end.epochValue.to_f
-            timestamp = sprintf "%s - %s (%i mins)", timestamp, end_time.to_date("%l:%M"), ((end_time - start_time) / 60).to_i
-        end
-        return timestamp
+  if dt_object_start
+    start_time = dt_object_start.epochValue.to_f
+    timestamp = start_time.to_date
+    if dt_object_end
+      end_time = dt_object_end.epochValue.to_f
+      timestamp = sprintf "%s - %s (%i mins)", timestamp, end_time.to_date("%l:%M"), ((end_time - start_time) / 60).to_i
     end
+    return timestamp
+  end
 end
 
 ##
@@ -395,95 +395,96 @@ end
 ##
 
 def print_botruns (bot_guid, limit = 25)
-    response = get_botruns(bot_guid, limit)
-    puts response.to_h if DEBUG
+  response = get_botruns(bot_guid, limit)
+  puts response.to_h if DEBUG
 
-    integrations = Array.new
-    puts "-" * 20
-    printf "Bot runs for %s\n", get_bot_name(bot_guid)
-    results = response.results.sort_by { |b| b.entity.integration }
-    results.each_with_index do |result, i|
-        puts result.to_h if DEBUG
-        entity = result.entity
-        column = Array.new
-        column.push(sprintf "%-2s", i+1)
-        column.push(sprintf " %-5s", "##{entity.integration}")
-        column.push(sprintf "%-35s", "#{entity.status} (#{entity.subStatus})")
-        column.push(sprintf "%-40s", execution_time(entity.startTime, entity.endTime))
-        if VERBOSE
-            column.push(entity.guid)
-        end
-        integrations.push(entity.integration)
-        puts column.join
+  integrations = Array.new
+  puts "-" * 20
+  printf "Bot runs for %s\n", get_bot_name(bot_guid)
+  results = response.results.sort_by { |b| b.entity.integration }
+  results.each_with_index do |result, i|
+    puts result.to_h if DEBUG
+    entity = result.entity
+    column = Array.new
+    column.push(sprintf "%-2s", i+1)
+    column.push(sprintf " %-5s", "##{entity.integration}")
+    column.push(sprintf "%-35s", "#{entity.status} (#{entity.subStatus})")
+    column.push(sprintf "%-40s", execution_time(entity.startTime, entity.endTime))
+    if VERBOSE
+      column.push(entity.guid)
     end
-    puts "-" * 20
-    return integrations
+    integrations.push(entity.integration)
+    puts column.join
+  end
+  puts "-" * 20
+  return integrations
 end
 
 def print_botrun (bot_guid, integration_no = nil)
-    response = get_botrun(bot_guid, integration_no)
-    puts response.to_h if DEBUG
+  bot = Bot.new bot_guid
+  response = bot.botrun
+  puts response.to_h if DEBUG
 
-    title = ""
-    if integration_no
-        title = sprintf "Bot run (%i) for %s\n", integration_no, get_bot_name(bot_guid)
-    else
-        title = sprintf "Latest bot run for %s\n", get_bot_name(bot_guid)
+  title = ""
+  if integration_no
+    title = sprintf "Bot run (%i) for %s\n", integration_no, bot.name
+  else
+    title = sprintf "Latest bot run for %s\n", bot.name
+  end
+
+  puts "-" * 20, title
+  # puts response.to_h
+  attr = response.extendedAttributes
+  if attr.output
+    build_output = attr.output.build 
+
+    errors       = build_output.ErrorSummaries
+    warnings     = build_output.WarningSummaries
+    actions      = build_output.Actions
+    archive_path = build_output.ArchivePath
+    is_running  = build_output.Running
+    analyzer_warnings = build_output.AnalyzerWarningSummaries
+
+    if errors
+      puts "Errors:"
+      errors.each do |error|
+        puts error.to_h if DEBUG
+        printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+      end
+      puts '-' * 10
     end
 
-    puts "-" * 20, title
-    # puts response.to_h
-    attr = response.extendedAttributes
-    if attr.output
-        build_output = attr.output.build 
-
-        errors       = build_output.ErrorSummaries
-        warnings     = build_output.WarningSummaries
-        actions      = build_output.Actions
-        archive_path = build_output.ArchivePath
-        is_running  = build_output.Running
-        analyzer_warnings = build_output.AnalyzerWarningSummaries
-
-        if errors
-            puts "Errors:"
-            errors.each do |error|
-                puts error.to_h if DEBUG
-                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-            end
-            puts '-' * 10
-        end
-
-        if warnings
-            puts "Warnings:"
-            warnings.each do |error|
-                puts error.to_h if DEBUG
-                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-            end
-            puts '-' * 10
-        end
-
-        if analyzer_warnings
-            puts "Analyzer Warnings:"
-            analyzer_warnings.each do |error|
-                puts error.to_h if DEBUG
-                printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-            end
-            puts '-' * 10
-        end
-
-        if actions
-            puts "Actions:"
-            actions.each do |action|
-                #puts action.to_h 
-                printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
-                # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
-            end
-        end
+    if warnings
+      puts "Warnings:"
+      warnings.each do |error|
+        puts error.to_h if DEBUG
+        printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+      end
+      puts '-' * 10
     end
 
-    #puts errors, actions, archive_path, is_running, analyzer_warnings
+    if analyzer_warnings
+      puts "Analyzer Warnings:"
+      analyzer_warnings.each do |error|
+        puts error.to_h if DEBUG
+        printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+      end
+      puts '-' * 10
+    end
 
-    title = sprintf "%s (%s)\n", attr.longName, attr.guid
-    printf "%s\n%s\n", title, "=" * title.length
-    puts "-" * 20
+    if actions
+      puts "Actions:"
+      actions.each do |action|
+        #puts action.to_h 
+        printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
+        # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
+      end
+    end
+  end
+
+  #puts errors, actions, archive_path, is_running, analyzer_warnings
+
+  title = sprintf "%s (%s)\n", attr.longName, attr.guid
+  printf "%s\n%s\n", title, "=" * title.length
+  puts "-" * 20
 end
