@@ -76,7 +76,7 @@ class Bot
     if !@last_update || (now - @last_update) > CACHE_EXPIRY
       @entity = ServiceRequest.xcbot_service("botForGUID:", [@guid])
     end
-    @last_update = Time.now.to_i
+    @last_update = now
     return @entity
   end
   private :get
@@ -186,12 +186,7 @@ class Bot
   end
 
   def botrun (integration_no = nil)
-    if integration_no
-        args = [ @guid, integration_no ]
-        return ServiceRequest.xcbot_service("botRunForBotGUID:andIntegrationNumber:", args)
-    else
-        return ServiceRequest.xcbot_service("latestTerminalBotRunForBotGUID:", [@guid])
-    end
+    return BotRun.new(@guid, integration_no)
   end
 
   # TODO (code review it)
@@ -233,17 +228,129 @@ class Bot
     return sprintf "%s (%s)", @entity.latestRunStatus, @entity.latestRunSubStatus
   end
 
-  def to_s
+  def to_s(type = "summary")
+    case type
+    when "summary"
+    when "raw"
+      return @entity.to_h
+    else
+      raise ArguementError, sprintf("No such type: %s", type)
+    end
   end
 
 end
 
+# TODO fix it up, make sense with Bot
 class BotRun
   @entity = nil
-  @guid = nil
+  @owner_guid = nil
+  @last_update = nil
 
-  def initialize(botrun_guid)
-    get_botruns 
+  def initialize(bot_guid, integration_no = nil)
+    @owner_guid = bot_guid
+    get(bot_guid, integration_no)
+  end
+
+  def get(bot_guid, integration_no = nil)
+    now = Time.now.to_i
+    # unless the status is not determined (i.e. succeeded or failed), then query the service
+    if(!@last_update || (!(@entity.status =~ /(completed|failed)/) && (now - @last_update) > CACHE_EXPIRY))
+      if integration_no
+          args = [ @guid, integration_no ]
+          @entity = ServiceRequest.xcbot_service("botRunForBotGUID:andIntegrationNumber:", args)
+      else
+          @entity = ServiceRequest.xcbot_service("latestTerminalBotRunForBotGUID:", [@guid])
+      end
+    end
+    @last_update = now
+    return @entity
+  end
+  private :get
+
+  ## catch-all accessor methods
+  # converts snake string to camel case
+  # http://apidock.com/rails/ActiveSupport/Inflector/camelize
+  def method_missing(method)
+    property = method.id2name
+    property = property.sub(/^(?=\b|[A-Z_])|\w/) { $&.downcase }
+    property = property.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }
+    get[property] || get.extendedAttributes[property] || raise(NoMethodError, property + " does not exist")
+  end
+  # status and sub_status
+
+
+  def to_s(type = "summary")
+    case type
+    when "summary"
+      bot = Bot.new bot_guid
+      response = bot.botrun
+      puts response.to_h if DEBUG
+
+      title = ""
+      if integration_no
+        title = sprintf "Bot run (%i) for %s\n", integration_no, bot.name
+      else
+        title = sprintf "Latest bot run for %s\n", bot.name
+      end
+
+      puts "-" * 20, title
+      # puts response.to_h
+      attr = response.extendedAttributes
+      if attr.output
+        build_output = attr.output.build 
+
+        errors       = build_output.ErrorSummaries
+        warnings     = build_output.WarningSummaries
+        actions      = build_output.Actions
+        archive_path = build_output.ArchivePath
+        is_running  = build_output.Running
+        analyzer_warnings = build_output.AnalyzerWarningSummaries
+
+        if errors
+          puts "Errors:"
+          errors.each do |error|
+            puts error.to_h if DEBUG
+            printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+          end
+          puts '-' * 10
+        end
+
+        if warnings
+          puts "Warnings:"
+          warnings.each do |error|
+            puts error.to_h if DEBUG
+            printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+          end
+          puts '-' * 10
+        end
+
+        if analyzer_warnings
+          puts "Analyzer Warnings:"
+          analyzer_warnings.each do |error|
+            puts error.to_h if DEBUG
+            printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
+          end
+          puts '-' * 10
+        end
+
+        if actions
+          puts "Actions:"
+          actions.each do |action|
+            #puts action.to_h 
+            printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
+            # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
+          end
+        end
+      end
+
+      #puts errors, actions, archive_path, is_running, analyzer_warnings
+
+      title = sprintf "%s (%s)\n", attr.longName, attr.guid
+      printf "%s\n%s\n", title, "=" * title.length
+      puts "-" * 20
+    else
+      reaise ArgumentError, sprintf("No such type: %s", type)
+    end
   end
 
 end
@@ -421,70 +528,4 @@ def print_botruns (bot_guid, limit = 25)
 end
 
 def print_botrun (bot_guid, integration_no = nil)
-  bot = Bot.new bot_guid
-  response = bot.botrun
-  puts response.to_h if DEBUG
-
-  title = ""
-  if integration_no
-    title = sprintf "Bot run (%i) for %s\n", integration_no, bot.name
-  else
-    title = sprintf "Latest bot run for %s\n", bot.name
-  end
-
-  puts "-" * 20, title
-  # puts response.to_h
-  attr = response.extendedAttributes
-  if attr.output
-    build_output = attr.output.build 
-
-    errors       = build_output.ErrorSummaries
-    warnings     = build_output.WarningSummaries
-    actions      = build_output.Actions
-    archive_path = build_output.ArchivePath
-    is_running  = build_output.Running
-    analyzer_warnings = build_output.AnalyzerWarningSummaries
-
-    if errors
-      puts "Errors:"
-      errors.each do |error|
-        puts error.to_h if DEBUG
-        printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-      end
-      puts '-' * 10
-    end
-
-    if warnings
-      puts "Warnings:"
-      warnings.each do |error|
-        puts error.to_h if DEBUG
-        printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-      end
-      puts '-' * 10
-    end
-
-    if analyzer_warnings
-      puts "Analyzer Warnings:"
-      analyzer_warnings.each do |error|
-        puts error.to_h if DEBUG
-        printf "  %s (%s): %s\n", error.IssueType, error.Target, error.Message
-      end
-      puts '-' * 10
-    end
-
-    if actions
-      puts "Actions:"
-      actions.each do |action|
-        #puts action.to_h 
-        printf " %s (%s): %s\n", action.Title, action.SchemeCommand, execution_time(action.StartedTime, action.EndedTime)
-        # BuildResult.AnalyzerWarningSummaries, RunDestination.{TargetArchitecture, Name, TargetDevice, TargetSDK}
-      end
-    end
-  end
-
-  #puts errors, actions, archive_path, is_running, analyzer_warnings
-
-  title = sprintf "%s (%s)\n", attr.longName, attr.guid
-  printf "%s\n%s\n", title, "=" * title.length
-  puts "-" * 20
 end
