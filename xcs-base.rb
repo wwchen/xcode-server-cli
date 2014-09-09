@@ -16,14 +16,20 @@ VERBOSE = true
 CACHE_EXPIRY = 5
 
 
+class ServiceRequestResponse
+  @last_update = nil
+
+  def initialize
+  end
+end
+
 ##
 # Base classes
 ##
-class Bot
+class Bot < ServiceRequestResponse
   @entity = nil
   @guid = nil
   @botruns = nil
-  @last_update = nil
 
   def initialize(arg)
     if (arg.is_a?(String) && arg.strip.match(/^[0-9a-z-]*$/))
@@ -241,7 +247,7 @@ class Bot
 end
 
 # TODO fix it up, make sense with Bot
-class BotRun
+class BotRun < ServiceRequestResponse
   @entity = nil
   @owner_guid = nil
   @last_update = nil
@@ -356,7 +362,6 @@ class BotRun
 end
 
 class ServiceRequest
-
   ## Makes the PUT request to call Xcode apache/collabd/sprocket's REST API
   def self.get_response (hostname, body)
       url = URI "http://#{hostname}/xcs/svc"
