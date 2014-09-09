@@ -36,4 +36,9 @@ when "create-test"
     "scmGUID" => "2ded7b82-44b1-b7d0-4ca8-15a6a266c7f1"
   }
   printf "%s\n", Bot.new(options).to_h
+when "update-branch"
+    bots.each do |bot|
+        options = { "branch" => ARGV[2] }
+        bot.update options
+    end
 end

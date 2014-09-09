@@ -136,7 +136,6 @@ class Bot < ServiceRequestResponse
   end
   private :create
 
-  # TODO try this method
   def update (options)
       # TODO also need to send updateEmailSubscriptionList:forEntityGUID:withNotificationType:
       # and deleteWorkScheduleWithEntityGUID:
@@ -182,12 +181,14 @@ class Bot < ServiceRequestResponse
               ["notifyCommitterOnFailure", options.failureNotify || @entity.notifyCommitterOnFailure ]
           ],
           "changeAction" => "UPDATE",
-          "entityGUID" => bot_guid,
+          "entityGUID" => @entity.guid,
           "entityRevision" => @entity.revision,
           "entityType" => "com.apple.entity.Bot",
           "force" => false
       }
-      puts JSON.pretty_generate args
+      if DEBUG
+          puts JSON.pretty_generate args
+      end
       return ServiceRequest.content_service("updateEntity:", [ args ])
   end
 
