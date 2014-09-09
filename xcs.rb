@@ -37,8 +37,9 @@ when "create-test"
   }
   printf "%s\n", Bot.new(options).to_h
 when "update-branch"
+    branch_name = ARGV[2]
     bots.each do |bot|
-        options = { "branch" => ARGV[2] }
+        options = { "branch" => branch_name }
         bot.update options
     end
 end
