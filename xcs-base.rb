@@ -34,12 +34,10 @@ class Bot < ServiceRequestResponse
   def initialize(arg)
     if (arg.is_a?(String) && arg.strip.match(/^[0-9a-z-]*$/))
       @guid = arg.strip
-      get
     elsif (arg.is_a? Hash)
       # TODO try the actual method here
       response = create(arg)
       @guid = response.guid
-      get
     else
       raise ArgumentError, sprintf("Cannot create or find a Bot with argument: %s", arg)
     end
@@ -54,7 +52,7 @@ class Bot < ServiceRequestResponse
     property = property.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }
     value = get[property]
     value = get.extendedAttributes[property] if value.nil?
-    if value.nil?
+    if value.nil? && DEBUG
         raise(NoMethodError, property + " does not exist")
     end
     return value
@@ -203,6 +201,7 @@ class Bot < ServiceRequestResponse
 
   # TODO (code review it)
   def botruns (limit = 25)
+    get
     # query for the raw data
     args = [ 
         :query => {
@@ -213,7 +212,7 @@ class Bot < ServiceRequestResponse
                     :exact => true,
                 },
                 {
-                    :match => bot_guid,
+                    :match => @entity.guid,
                     :field => "ownerGUID",
                     :exact => true
                 }
@@ -227,8 +226,9 @@ class Bot < ServiceRequestResponse
 
     botruns = Array.new
     results = response.results.map { |b| b.entity }
-    results.sort_by! { |b| b.integratoin }
-    results.each { |b| botruns.push BotRun.new(b.guid) }
+    results.sort_by! { |b| b.integration }
+    #results.each { |b| botruns.push BotRun.new(b.guid) }
+    results.each { |b| botruns.push BotRun.new(@entity.guid, b.integration) }
     return botruns
   end
 
@@ -257,18 +257,20 @@ class BotRun < ServiceRequestResponse
   @entity = nil
   @owner_guid = nil
   @last_update = nil
+  @integration_no = nil
+  @guid = nil # TODO use get_entity
 
-  def initialize(bot_guid, integration_no = nil)
+  def initialize(bot_guid, integration_no)
     @owner_guid = bot_guid
-    get(bot_guid, integration_no)
+    @integration_no = integration_no
   end
 
-  def get(bot_guid, integration_no = nil)
+  def get
     now = Time.now.to_i
     # unless the status is not determined (i.e. succeeded or failed), then query the service
-    if(!@last_update || (!(@entity.status =~ /(completed|failed)/) && (now - @last_update) > CACHE_EXPIRY))
-      if integration_no
-          args = [ @guid, integration_no ]
+    if !@last_update || (now - @last_update) > CACHE_EXPIRY
+      if @integration_no
+          args = [ @owner_guid, @integration_no ]
           @entity = ServiceRequest.xcbot_service("botRunForBotGUID:andIntegrationNumber:", args)
       else
           @entity = ServiceRequest.xcbot_service("latestTerminalBotRunForBotGUID:", [@guid])
@@ -286,36 +288,29 @@ class BotRun < ServiceRequestResponse
     property = method.id2name
     property = property.sub(/^(?=\b|[A-Z_])|\w/) { $&.downcase }
     property = property.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }
-    get[property] || get.extendedAttributes[property] || raise(NoMethodError, property + " does not exist")
+    value = get[property]
+    value = get.extendedAttributes[property] if value.nil?
+    if value.nil? && DEBUG
+        raise(NoMethodError, property + " does not exist")
+    end
+    return value
   end
-  # status and sub_status
-
 
   def to_s(type = "summary")
+    #puts get.to_h
     case type
     when "summary"
-      bot = Bot.new bot_guid
-      response = bot.botrun
-      puts response.to_h if DEBUG
-
-      title = ""
-      if integration_no
-        title = sprintf "Bot run (%i) for %s\n", integration_no, bot.name
-      else
-        title = sprintf "Latest bot run for %s\n", bot.name
-      end
+      title = sprintf "Bot run (%i) for %s\n", self.integration, self.botSnapshot.longName
 
       puts "-" * 20, title
-      # puts response.to_h
-      attr = response.extendedAttributes
-      if attr.output
-        build_output = attr.output.build 
+      if self.output
+        build_output = self.output.build 
 
         errors       = build_output.ErrorSummaries
         warnings     = build_output.WarningSummaries
         actions      = build_output.Actions
         archive_path = build_output.ArchivePath
-        is_running  = build_output.Running
+        is_running   = build_output.Running
         analyzer_warnings = build_output.AnalyzerWarningSummaries
 
         if errors
@@ -355,9 +350,7 @@ class BotRun < ServiceRequestResponse
         end
       end
 
-      #puts errors, actions, archive_path, is_running, analyzer_warnings
-
-      title = sprintf "%s (%s)\n", attr.longName, attr.guid
+      title = sprintf "%s (%s)\n", self.botSnapshot.longName, self.botSnapshot.guid
       printf "%s\n%s\n", title, "=" * title.length
       puts "-" * 20
     else
@@ -513,30 +506,26 @@ end
 ##
 
 def print_botruns (bot_guid, limit = 25)
-  response = get_botruns(bot_guid, limit)
+  bot = Bot.new(bot_guid)
+  botruns = bot.botruns
   puts response.to_h if DEBUG
 
   integrations = Array.new
   puts "-" * 20
-  printf "Bot runs for %s\n", get_bot_name(bot_guid)
-  results = response.results.sort_by { |b| b.entity.integration }
-  results.each_with_index do |result, i|
-    puts result.to_h if DEBUG
-    entity = result.entity
+  printf "Bot runs for %s\n", bot.name
+  botruns.each_with_index do |botrun, i|
+    puts botrun.to_h if DEBUG
     column = Array.new
     column.push(sprintf "%-2s", i+1)
-    column.push(sprintf " %-5s", "##{entity.integration}")
-    column.push(sprintf "%-35s", "#{entity.status} (#{entity.subStatus})")
-    column.push(sprintf "%-40s", execution_time(entity.startTime, entity.endTime))
+    column.push(sprintf " %-5s", "##{botrun.integration}")
+    column.push(sprintf "%-35s", "#{botrun.status} (#{botrun.subStatus})")
+    column.push(sprintf "%-40s", execution_time(botrun.startTime, botrun.endTime))
     if VERBOSE
-      column.push(entity.guid)
+      column.push(botrun.guid)
     end
-    integrations.push(entity.integration)
+    integrations.push(botrun.integration)
     puts column.join
   end
   puts "-" * 20
   return integrations
-end
-
-def print_botrun (bot_guid, integration_no = nil)
 end

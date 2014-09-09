@@ -67,7 +67,9 @@ while true
         bot_guid  = bots[selection-1]
         integrations = print_botruns(bot_guid)
         selection = read_number "Select which bot run to look into", integrations.length
-        print_botrun(bot_guid, integrations[selection-1])
+        botruns = Bot.new(bot_guid).botruns
+        botruns[selection-1].to_s
+        #print_botrun(bot_guid, integrations[selection-1])
     when 3
         next
     when 4
