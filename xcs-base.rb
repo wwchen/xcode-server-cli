@@ -52,7 +52,12 @@ class Bot < ServiceRequestResponse
     property = method.id2name
     property = property.sub(/^(?=\b|[A-Z_])|\w/) { $&.downcase }
     property = property.gsub(/(?:_|(\/))([a-z\d]*)/) { "#{$1}#{$2.capitalize}" }
-    get[property] || get.extendedAttributes[property] || raise(NoMethodError, property + " does not exist")
+    value = get[property]
+    value = get.extendedAttributes[property] if value.nil?
+    if value.nil?
+        raise(NoMethodError, property + " does not exist")
+    end
+    return value
   end
 
   ## shorthand accessors
