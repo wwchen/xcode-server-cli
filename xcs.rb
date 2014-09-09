@@ -20,12 +20,13 @@ case action
 when "status"
   bots.each do |bot|
     printf "%-30s %s\n", bot.name, bot.latest_run_status
-    print_botrun bot.guid
+    bot.botruns.last.to_s
   end
 when "run"
   bots.each do |bot|
-    bot = Bot.new bot
-    puts bot.integrate
+    bot.integrate
+    printf "Scheduled botrun for %s\n", bot.name
+    printf "Integration queued is %s\n", bot.integration
   end
 when "create-test"
   options = {
