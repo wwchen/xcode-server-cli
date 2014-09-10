@@ -24,9 +24,9 @@ when "status"
   end
 when "run"
   bots.each do |bot|
-    bot.integrate
+    response = bot.integrate
     printf "Scheduled botrun for %s\n", bot.name
-    printf "Integration queued is %s\n", bot.integration
+    printf "Integration queued is %s\n", response.integration
   end
 when "create-test"
   options = {
