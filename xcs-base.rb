@@ -69,7 +69,7 @@ class Bot < ServiceRequestResponse
 
   ## action verbs: create, update, delete, get, integrate, cancel
   def cancel
-    ServiceRequest.xcbot_service("cancelBotRunWithGUID:", [@guid])
+    botruns.last.cancel
   end
 
   def integrate
@@ -196,7 +196,7 @@ class Bot < ServiceRequestResponse
   end
 
   def botrun (integration_no = nil)
-    return BotRun.new(@guid, integration_no)
+    BotRun.new(@guid, integration_no)
   end
 
   # TODO (code review it)
@@ -258,7 +258,7 @@ class BotRun < ServiceRequestResponse
   @owner_guid = nil
   @last_update = nil
   @integration_no = nil
-  @guid = nil # TODO use get_entity
+  #@guid = nil # TODO use get_entity
 
   def initialize(bot_guid, integration_no)
     @owner_guid = bot_guid
@@ -273,13 +273,21 @@ class BotRun < ServiceRequestResponse
           args = [ @owner_guid, @integration_no ]
           @entity = ServiceRequest.xcbot_service("botRunForBotGUID:andIntegrationNumber:", args)
       else
-          @entity = ServiceRequest.xcbot_service("latestTerminalBotRunForBotGUID:", [@guid])
+          @entity = ServiceRequest.xcbot_service("latestTerminalBotRunForBotGUID:", [@owner_guid])
       end
     end
     @last_update = now
     return @entity
   end
   private :get
+
+  def cancel
+    get
+    if DEBUG
+      puts "Canceling #{guid}"
+    end
+    ServiceRequest.xcbot_service("cancelBotRunWithGUID:", [guid])
+  end
 
   ## catch-all accessor methods
   # converts snake string to camel case

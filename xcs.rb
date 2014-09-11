@@ -5,7 +5,7 @@ require_relative 'xcs-base'
 #output = send(*ARGV)
 
 if ARGV.count < 2
-  puts "Usage: ./xcs-cli.rb (status|run) [bot name]"
+  puts "Usage: ./xcs-cli.rb (status|run|update-branch|cancel) [bot name] [additional args]"
   puts "Regex is supported for bot name"
   exit
 end
@@ -42,5 +42,23 @@ when "update-branch"
     bots.each do |bot|
         options = { "branch" => branch_name }
         bot.update options
+    end
+when "cancel"
+    # TODO wichen: I think it's a little buggy. Doens't always work
+    bot_names = bots.map { |b| b.name }
+    puts "Canceling #{bot_names} until script is interrupted\n"
+    while true
+        bots.each do |bot|
+            status = bot.latestRunStatus
+            if status =~ /(running|integrating)/
+                printf "%s is running. Canceling...\n", bot.name
+                bot.cancel
+            elsif status =~ /(completed|canceled)/
+            else
+                printf "%s: %s\n", bot.name, status
+            end
+        end
+
+        sleep 2
     end
 end
