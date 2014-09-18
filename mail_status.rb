@@ -20,7 +20,6 @@ end
 
 botrun = Bot.new(bot_guid).botrun
 
-puts botrun.class
 if botrun
     build_output = botrun.extendedAttributes.output.build 
 
@@ -35,6 +34,7 @@ if botrun
     is_running   = build_output.Running
     commits      = botrun.scmCommitGUIDs
 
+    printf "Error: %i, warning: %i, issue: %i\n", error_cnt, warning_cnt, issue_cnt
     unless error_cnt == 0 and warning_cnt == 0 and issue_cnt == 0
         puts "Preparing email"
 
@@ -109,4 +109,6 @@ if botrun
         #puts "Mail delievered to #{info["to"]}, cc #{info["cc"]}"
         puts "Mail delievered"
     end
+else
+    puts "Bot run not found"
 end
