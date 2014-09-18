@@ -6,7 +6,7 @@ require 'mail'
 FROM = "admin@iceiosbuild.redmond.corp.microsoft.com"
 
 if ARGV.length < 3
-    puts "Usage: ./mail_build_status.rb <bot_guid> <to_email> <cc_email"
+    puts "Usage: ./mail_build_status.rb <bot_guid> <to_email> <cc_email>"
     exit
 end
 
@@ -18,13 +18,13 @@ Mail.defaults do
     delivery_method :sendmail
 end
 
-response = get_botrun bot_guid
+botrun = Bot.new(bot_guid).botrun
 
-attr = response.extendedAttributes
-if attr.output
-    build_output = attr.output.build 
+puts botrun.class
+if botrun
+    build_output = botrun.extendedAttributes.output.build 
 
-    name        = attr.botSnapshot.longName.sstrip
+    name        = botrun.extendedAttributes.botSnapshot.longName.sstrip
     error       = build_output.ErrorSummaries
     warning     = build_output.WarningSummaries
     issue       = build_output.AnalyzerWarningSummaries
@@ -33,7 +33,7 @@ if attr.output
     issue_cnt   = build_output.AnalyzerWarningCount
     archive_path = build_output.ArchivePath
     is_running   = build_output.Running
-    commits      = response.scmCommitGUIDs
+    commits      = botrun.scmCommitGUIDs
 
     unless error_cnt == 0 and warning_cnt == 0 and issue_cnt == 0
         puts "Preparing email"
@@ -47,10 +47,10 @@ if attr.output
 
         summary_table = Array.new
         summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Name", name
-        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Integration", response.integration
-        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Status", response.status
-        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Substatus", response.subStatus
-        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Execution time", execution_time(response.startTime, response.endTime)
+        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Integration", botrun.integration
+        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Status", botrun.status
+        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Substatus", botrun.subStatus
+        summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Execution time", execution_time(botrun.startTime, botrun.endTime)
         summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Error count", error_cnt
         summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Warning count", warning_cnt
         summary_table.push sprintf "<tr><td>%s </td><td>%s</td></tr>", "Analysis issues", issue_cnt

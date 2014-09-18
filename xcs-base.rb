@@ -86,6 +86,9 @@ class Bot < ServiceRequestResponse
       @entity = ServiceRequest.xcbot_service("botForGUID:", [@guid])
     end
     @last_update = now
+    if @entity.nil?
+        raise ScriptError, "ServiceRequest returned nil"
+    end
     return @entity
   end
   private :get
@@ -277,6 +280,9 @@ class BotRun < ServiceRequestResponse
       end
     end
     @last_update = now
+    if @entity.nil?
+        raise ScriptError, "ServiceRequest returned nil"
+    end
     return @entity
   end
   private :get
