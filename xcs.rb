@@ -306,7 +306,7 @@ class XCodeInteractive
         response = interface.find_bot id
         # make a new integration with that config
         response = interface.create_integration_for_bot id, response
-        puts JSON.pretty_generate response
+        printf "%s iteration %s scheduled.\n", response["_id"], response["number"]
     end
 
     def self.find_bot_id_by_scm_info (name, name_regex)
