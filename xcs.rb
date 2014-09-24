@@ -40,13 +40,12 @@ class XCodeAPI
 
     def initialize (config_file = nil)
         if config_file
-            #config = YAML.load_file(File.join(File.dirname(File.expand_path(__FILE__)),"config.yml")) unless defined? CONFIG
             config = YAML.load_file config_file
             set_hostname config["HOSTNAME"]
             set_credentials config["USERNAME"], config["PASSWORD"]
-            puts "Config file loaded: #{config_file}" if DEBUG
+            puts "Config file loaded: #{config_file}" if VERBOSE
         else
-            puts "No config file provided" if DEBUG
+            puts "No config file provided" if VERBOSE
         end
     end
 
