@@ -305,7 +305,7 @@ class XCodeInteractive
             repo_id = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey"]
             branch_name  = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintLocationsKey"][repo_id]["DVTSourceControlBranchIdentifierKey"]
             project_path = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey"]
-            if branch_name == name && project_path =~ Regex.new name_regex, Regex::IGNORECASE
+            if branch_name == name && project_path =~ Regexp.new(name_regex, Regexp::IGNORECASE)
                 bot_ids.push bot_id
             end
         end
@@ -321,7 +321,7 @@ class XCodeInteractive
         results.each do |result|
             bot_id = result["_id"]
             bot_name = result["name"]
-            if bot_name =~ Regex.new name_regex, Regexp::IGNORECASE
+            if bot_name =~ Regexp.new(name_regex, Regexp::IGNORECASE)
                 bot_ids.push bot_id
             end
         end
@@ -333,15 +333,12 @@ end
 ##
 # main entry point
 
-XCodeInteractive.print_bots
-puts
-XCodeInteractive.print_bot_configuration "92a60c96b41506e3528c9945a245ad7c"
-puts
-XCodeInteractive.print_integrations_for_bot "92a60c96b41506e3528c9945a245ad7c"
-puts
-XCodeInteractive.print_integration "92a60c96b41506e3528c9945a245d78d"
-
-puts XCodeInteractive.find_bot_id_by_scm_info "main", "common/AXPlatformTest/AXPlatformTest.xcodeproj"
+# usage example
+# XCodeInteractive.print_bots
+# XCodeInteractive.print_bot_configuration "92a60c96b41506e3528c9945a245ad7c"
+# XCodeInteractive.print_integrations_for_bot "92a60c96b41506e3528c9945a245ad7c"
+# XCodeInteractive.print_integration "92a60c96b41506e3528c9945a245d78d"
+# puts XCodeInteractive.find_bot_id_by_scm_info "main", "common/AXPlatformTest/AXPlatformTest.xcodeproj"
 
 
 #####################################################################

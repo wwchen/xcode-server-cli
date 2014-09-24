@@ -4,7 +4,7 @@ require_relative 'xcs'
 
 #output = send(*ARGV)
 
-if ARGV.count < 2
+if ARGV.count < 1
   puts "Usage: ./xcs-cli.rb (status|run|bot-config|cancel) [args]"
   puts "Regex is supported for bot name"
   exit
