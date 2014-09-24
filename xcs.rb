@@ -37,6 +37,7 @@ class XCodeAPI
     @username = nil
     @password = nil
     @http = nil
+    @auth_cookie = nil
 
     def initialize (config_file = nil)
         if config_file
@@ -62,15 +63,28 @@ class XCodeAPI
         @password = password.strip
     end
 
+    def login
+        if @username && @password && @auth_cookie.nil?
+            request = Net::HTTP::Post.new "/api/auth/login"
+            request.basic_auth @username, @password
+            response = @http.request request
+            @auth_cookie = response["Set-Cookie"]
+            puts @auth_cookie if VERBOSE
+        end
+    end
+
+    # TODO headers
     def get_request (pathString, headers = {})
+        login
         request = Net::HTTP::Get.new "/api/#{pathString}"
-        request.basic_auth @username, @password
+        request["Cookie"] = @auth_cookie
         return @http.request request
     end
 
+    # TODO headers
     def post_request (pathString, data, headers = {})
         request = Net::HTTP::Post.new "/api/#{pathString}"
-        request.basic_auth @username, @password
+        request["Cookie"] = @auth_cookie
         request.set_form_data data
         return @http.request request
     end
@@ -96,9 +110,12 @@ class XCodeAPIInterface
             response = @api.post_request url, data
         end
 
+        # TODO raise the correct exceptions
         case response
-        when Net::HTTPSuccess, NET::HTTPOK, NET::HTTPCreated
+        when Net::HTTPSuccess, Net::HTTPOK, Net::HTTPCreated
             return JSON.parse response.body.to_utf8
+        when Net::HTTPUnauthorized
+            puts "Unauthorized"
         when nil
             raise IOError, "#{type} request failed: response is nil for #{url}"
         else
