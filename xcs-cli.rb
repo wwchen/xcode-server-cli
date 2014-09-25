@@ -12,9 +12,9 @@ end
 
 action = ARGV[0]
 branch_name = ARGV[1]
-bot_name = ARGV[2]
+project_name = ARGV[2]
 scheme_name = ARGV[3]
-bot_ids = XCodeInteractive.find_bot_ids_by_scm_info branch_name, bot_name
+bot_ids = XCodeInteractive.find_bot_ids_by_scm_info branch_name, project_name, scheme_name
 
 case action
 when "status"
