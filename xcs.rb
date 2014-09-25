@@ -172,6 +172,16 @@ class XCodeAPIInterface
         return make_request "get", "integrations/#{id}"
     end
 
+    def filter_integrations (filter)
+        queryString = URI.encode_www_form filter
+        return make_request "get", "integrations?#{filter}"
+    end
+
+    def filter_integrations_for_bot (bot_id, filter)
+        queryString = URI.encode_www_form filter
+        return make_request "get", "bots/#{bot_id}/integrations?#{filter}"
+    end
+
     def cancel_integration (id)
         return make_request "post", "integrations/#{id}/cancel"
     end
@@ -309,7 +319,7 @@ class XCodeInteractive
         printf "%s iteration %s scheduled.\n", response["_id"], response["number"]
     end
 
-    def self.find_bot_id_by_scm_info (name, name_regex)
+    def self.find_bot_ids_by_scm_info (branch, project = nil, scheme = nil)
         interface = XCodeAPIInterface.instance
         response = interface.list_bots
         bot_ids = Array.new
@@ -321,7 +331,12 @@ class XCodeInteractive
             repo_id = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey"]
             branch_name  = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintLocationsKey"][repo_id]["DVTSourceControlBranchIdentifierKey"]
             project_path = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey"]
-            if branch_name == name && project_path =~ Regexp.new(name_regex, Regexp::IGNORECASE)
+            scheme = response["configuration"]["schemeName"]
+
+            criteria = branch_name == branch
+            criteria &= scheme_name == scheme if scheme
+            criteria &= project_path =~ Regexp.new(project, Regexp::IGNORECASE) if project
+            if criteria
                 bot_ids.push bot_id
             end
         end
@@ -343,6 +358,39 @@ class XCodeInteractive
         end
         return bot_ids
     end
+
+    def self.cancel_pending_integrations
+        interface = XCodeAPIInterface.instance
+        filter = { "currentStep" => "pending" }
+        response = interface.filter_integrations filter
+        response["results"].each do |result|
+            interface.cancel_integration result["_id"]
+        end
+    end
+
+    def self.cancel_pending_integrations_for_bot_id (bot_id)
+        interface = XCodeAPIInterface.instance
+        filter = { "currentStep" => "pending" }
+        response = interface.filter_integrations_for_bot bot_id, filter
+        response["results"].each do |result|
+            interface.cancel_integration result["_id"]
+        end
+    end
+
+    # TODO not proud of this function
+    def self.stop_integrations_for_bot_id (bot_id)
+        interface = XCodeAPIInterface.instance
+        filter = { "currentStep" => "building" }
+        response = interface.filter_integrations_for_bot bot_id, filter
+        response["results"].each do |result|
+            interface.cancel_integration result["_id"]
+        end
+        filter = { "currentStep" => "archiving" }
+        response = interface.filter_integrations_for_bot bot_id, filter
+        response["results"].each do |result|
+            interface.cancel_integration result["_id"]
+        end
+    end
 end
 
 
@@ -354,7 +402,7 @@ end
 # XCodeInteractive.print_bot_configuration "92a60c96b41506e3528c9945a245ad7c"
 # XCodeInteractive.print_integrations_for_bot "92a60c96b41506e3528c9945a245ad7c"
 # XCodeInteractive.print_integration "92a60c96b41506e3528c9945a245d78d"
-# puts XCodeInteractive.find_bot_id_by_scm_info "main", "common/AXPlatformTest/AXPlatformTest.xcodeproj"
+# puts XCodeInteractive.find_bot_ids_by_scm_info "main", "common/AXPlatformTest/AXPlatformTest.xcodeproj"
 
 
 #####################################################################
