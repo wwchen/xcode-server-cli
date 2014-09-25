@@ -8,7 +8,7 @@ require 'yaml'
 require 'singleton'
 
 DEBUG = false
-VERBOSE = true
+VERBOSE = false
 CHECKMARK = "✔"
 CROSSMARK = "✘"
 CACHE_EXPIRY = 5
@@ -331,7 +331,7 @@ class XCodeInteractive
             repo_id = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey"]
             branch_name  = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintLocationsKey"][repo_id]["DVTSourceControlBranchIdentifierKey"]
             project_path = response["configuration"]["sourceControlBlueprint"]["DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey"]
-            scheme = response["configuration"]["schemeName"]
+            scheme_name = response["configuration"]["schemeName"]
 
             criteria = branch_name == branch
             criteria &= scheme_name == scheme if scheme
